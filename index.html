@@ -64,6 +64,13 @@ body{
   box-shadow:0 0 0 2px #28a74533;
 }
 
+.group{
+  border:2px dashed #bbb;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+
 h2{
   margin:0 0 6px 0;
   font-size:16px;
@@ -106,6 +113,8 @@ select,input,textarea,button{
 
   <!-- LEFT -->
   <div class="left">
+
+    <!-- TOP BAR -->
     <div class="topbar">
       <button class="btn-blue" onclick="modeImage()">🖼 ภาพ</button>
       <button class="btn-purple" onclick="modeWork()">🧩 งาน</button>
@@ -113,6 +122,7 @@ select,input,textarea,button{
       <button class="btn-orange" onclick="modeSub()">✍️ ซับ</button>
     </div>
 
+    <!-- PRESET SORA -->
     <div class="card">
       <h2>🎬 Preset Sora</h2>
       <select id="presetSora" onchange="loadPreset()"></select>
@@ -124,6 +134,7 @@ select,input,textarea,button{
       </div>
     </div>
 
+    <!-- MENU -->
     <div id="menu"></div>
   </div>
 
@@ -137,6 +148,12 @@ select,input,textarea,button{
 </div>
 
 <script>
+function getValue(key){
+  if(!data[key] || !data[key].enabled) return "";
+  const s = document.getElementById(key + "_s");
+  return s ? s.value : "";
+}
+
 const LS="PROMPT_BUILDER_DATA";
 const LS_PRESET="SORA_PRESETS";
 
@@ -148,19 +165,6 @@ const result=document.getElementById("result");
 let soraPresets=JSON.parse(localStorage.getItem(LS_PRESET)) || {
   ugc:{name:"UGC รีวิวสินค้า",text:"A vertical 9:16 UGC-style video.\nNatural lighting.\n15 seconds."}
 };
-
-let data=JSON.parse(localStorage.getItem(LS)) || {
-  image:{enabled:false,items:["แต่งภาพ 9:16"]},
-  product:{enabled:false,items:["ท็อปเปอร์"]},
-  work:{enabled:false,items:["UGC รีวิว"]},
-  model:{enabled:false,items:["นางแบบเอเชีย"]},
-  style:{enabled:false,items:["Luxury"]},
-  mood:{enabled:false,items:["อบอุ่น"]},
-  voice:{enabled:false,items:["เสียงผู้หญิง"]},
-  subtitle:{enabled:false,items:["ซับขาย"]}
-};
-
-function save(){localStorage.setItem(LS,JSON.stringify(data));}
 
 function renderPresets(){
   presetSora.innerHTML="";
@@ -197,15 +201,33 @@ function deletePreset(){
   renderPresets();
 }
 
+let data=JSON.parse(localStorage.getItem(LS)) || {
+  image:{enabled:false,items:["แต่งภาพ 9:16"]},
+  product:{enabled:false,items:["ท็อปเปอร์"]},
+  work:{enabled:false,items:["UGC รีวิว"]},
+  model:{enabled:false,items:["นางแบบเอเชีย"]},
+  style:{enabled:false,items:["Luxury"]},
+  mood:{enabled:false,items:["อบอุ่น"]},
+  voice:{enabled:false,items:["เสียงผู้หญิง"]},
+  subtitle:{enabled:false,items:["ซับขาย"]}
+};
+
+function save(){localStorage.setItem(LS,JSON.stringify(data));}
+
 function section(title,key){
   const c=data[key];
   if(!c.enabled) return "";
   return `
-  <div class="card active">
+  <div class="card active" id="sec-${key}">
     <h2>${title}</h2>
     <select id="${key}_s" onchange="update()">
       ${c.items.map(v=>`<option>${v}</option>`).join("")}
     </select>
+    <input id="${key}_i" placeholder="เพิ่ม / แก้ไข">
+    <div class="row">
+      <button class="add" onclick="add('${key}')">➕ เพิ่ม</button>
+      <button class="del" onclick="delItem('${key}')">🗑 ลบ</button>
+    </div>
   </div>`;
 }
 
@@ -220,6 +242,24 @@ function render(){
     section("🎤 เสียงพากย์","voice")+
     section("✍️ สร้างซับไตเติล","subtitle");
   update();
+}
+
+function add(k){
+  const i=document.getElementById(k+"_i");
+  if(!i.value) return;
+  data[k].items.push(i.value);
+  i.value="";
+  save();
+  render();
+}
+
+function delItem(k){
+  const s=document.getElementById(k+"_s");
+  if(!s) return;
+  if(!confirm(`ยืนยันการลบ "${s.value}" ?`)) return;
+  data[k].items.splice(s.selectedIndex,1);
+  save();
+  render();
 }
 
 function line(t,k){
@@ -260,5 +300,6 @@ function copyText(){
 renderPresets();
 render();
 </script>
+
 </body>
 </html>
