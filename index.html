@@ -271,11 +271,11 @@ function line(t,k){
 function update(){
   const p=soraPresets[presetSora.value];
   result.value =
-`### PRESET SORA ###
+`######
 ${p?p.text:""}
 
 ### DETAIL ###
-${line("สร้างภาพ","image")}
+${line("ช่วยสร้างภาพ จำนวน1ภาพ (Output ออกมาเป็นไฟล์ภาพเลย) รายละเอียดดังนี้","image")}
 ${line("สินค้า","product")}
 ${line("ประเภทงาน","work")}
 ${line("นายแบบ/นางแบบ","model")}
