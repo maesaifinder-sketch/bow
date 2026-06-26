@@ -1,0 +1,45 @@
+{
+  "id": "/",
+  "name": "Shopee Product Finder",
+  "short_name": "ShopeeFinder",
+  "description": "Offline PWA สำหรับค้นหาและคัดกรองสินค้าจากไฟล์ CSV",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fafafa",
+  "theme_color": "#ff6a00",
+  "lang": "th",
+  "dir": "ltr",
+
+  "icons": [
+    {
+      "src": "assets/icon192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "assets/icon512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "categories": [
+    "productivity",
+    "shopping",
+    "business"
+  ],
+
+  "screenshots": [
+    {
+      "src": "assets/screenshot-tablet.png",
+      "sizes": "1280x800",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Shopee Product Finder"
+    }
+  ]
+}
