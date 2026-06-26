@@ -48,7 +48,7 @@ async function importCSVFile(file){
 
         worker:true,
 
-        dynamicTyping:true,
+        dynamicTyping: false,
 
         complete:async function(results){
 
@@ -97,7 +97,7 @@ async function saveBatch(){
 
             product_id:
 
-                row.product_id,
+                String(row.product_id),
 
             name:
 
