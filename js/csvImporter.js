@@ -42,31 +42,37 @@ async function importCSVFile(file){
 
     Papa.parse(file,{
 
-        header:true,
+    header:true,
 
-        skipEmptyLines:true,
+    skipEmptyLines:true,
 
-        worker:true,
+    worker:true,
 
-        dynamicTyping: false,
+    dynamicTyping:false,
 
-        complete:async function(results){
+    complete:async function(results){
 
-            CSVImporter.rows=results.data;
+        console.log("CSV Rows =", results.data.length);
 
-            await saveBatch();
+        console.log("First Row =", results.data[0]);
 
-        },
+        CSVImporter.rows=results.data;
 
-        error:function(error){
+        await saveBatch();
 
-            hideLoading();
+    },
 
-            alert(error.message);
+    error:function(error){
 
-        }
+        hideLoading();
 
-    });
+        console.error(error);
+
+        alert(error.message);
+
+    }
+
+});
 
 }
 
@@ -95,57 +101,43 @@ async function saveBatch(){
 
         const products=batch.map(row=>({
 
-            product_id:
+            product_id:String(row.product_id),
 
-                String(row.product_id),
+            name:row.name,
 
-            name:
+            cat:row.cat,
 
-                row.name,
+            cat_id:row.cat_id,
 
-            cat:
+            price:Number(row.price)||0,
 
-                row.cat,
+            rating:Number(row.rating)||0,
 
-            cat_id:
+            sales:Number(row.sales)||0,
 
-                row.cat_id,
+            revenue:Number(row.revenue)||0,
 
-            price:
+            creators:Number(row.creators)||0,
 
-                Number(row.price)||0,
+            score:Number(row.score)||0,
 
-            rating:
+            img:row.img,
 
-                Number(row.rating)||0,
-
-            sales:
-
-                Number(row.sales)||0,
-
-            revenue:
-
-                Number(row.revenue)||0,
-
-            creators:
-
-                Number(row.creators)||0,
-
-            score:
-
-                Number(row.score)||0,
-
-            img:
-
-                row.img,
-
-            tiktok_url:
-
-                row.tiktok_url
+            tiktok_url:row.tiktok_url
 
         }));
 
+
+        // ===== เพิ่มตรงนี้ =====
+
+        console.log("Saving batch", CSVImporter.imported);
+
         await addProducts(products);
+
+        console.log("Batch OK");
+
+        // =======================
+
 
         CSVImporter.imported+=batch.length;
 

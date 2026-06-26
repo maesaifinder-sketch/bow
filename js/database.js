@@ -190,10 +190,22 @@ async function addProducts(products) {
             );
 
         products.forEach(item => {
+    try {
+        store.put(item);
+    } catch (e) {
+        console.error("PUT ERROR", e, item);
+    }
+});
 
-            store.put(item);
+tx.oncomplete = () => {
+    console.log("Batch Saved");
+    resolve();
+};
 
-        });
+tx.onerror = (e) => {
+    console.error("Transaction Error", e);
+    reject(e);
+};
 
         tx.oncomplete = () => {
 
