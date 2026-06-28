@@ -351,11 +351,34 @@ CSV.mapRow = function (row) {
             row["product_short link"] || ""
         ).trim(),
 
-        image_url:
-    row["image_link"] &&
-    row["image_link"] !== "undefined"
-        ? row["image_link"].trim()
-        : ""
+        const imageUrl = [
+    row["image_link"],
+    row["image_link_2"],
+    row["image_link_3"],
+    row["image_link_4"],
+    row["image_link_5"],
+    row["image_link_6"],
+    row["image_link_7"],
+    row["image_link_8"]
+].find(url =>
+    url &&
+    String(url).trim() !== "" &&
+    String(url).trim().toLowerCase() !== "undefined"
+);
+
+return {
+    product_id: String(row["itemid"]).trim(),
+    name: String(row["title"] || "").trim(),
+    shop_name: String(row["shop_name"] || "").trim(),
+    price: CSV.parsePrice(row["price"]),
+    sold: CSV.parseSold(row["item_sold"]),
+    commission_rate: 0,
+    commission_amount: 0,
+    product_url: String(row["product_link"] || "").trim(),
+    offer_url: String(row["product_short link"] || "").trim(),
+
+    image_url: imageUrl ? imageUrl.trim() : ""
+};
 
     };
 
