@@ -310,46 +310,9 @@ CSV.updateProgress = function () {
 ========================================================== */
 
 CSV.mapRow = function (row) {
-
-    if (!row || !row["รหัสสินค้า"]) {
-
-        return null;
-
-    }
-
-    return {
-
-        product_id: String(row["รหัสสินค้า"]).trim(),
-
-        name: String(row["ชื่อสินค้า"] || "").trim(),
-
-        shop_name: String(row["ชื่อร้านค้า"] || "").trim(),
-
-        price: CSV.parsePrice(row["ราคา"]),
-
-        sold: CSV.parseSold(row["ขาย"]),
-
-        commission_rate: CSV.parsePercent(
-            row["อัตราค่าคอมมิชชัน"]
-        ),
-
-        commission_amount: CSV.parseMoney(
-            row["คอมมิชชัน"]
-        ),
-
-        product_url: String(
-            row["ลิงก์สินค้า"] || ""
-        ).trim(),
-
-        offer_url: String(
-            row["ลิงก์ข้อเสนอ"] || ""
-        ).trim(),
-
-        image_url: ""
-
-    };
-
-};
+ const isNew = row["itemid"]!==undefined;
+ if(isNew){ const rate=CSV.parsePercent(row["cb_option"]||row["discount_percentage"]); if(rate<=10)return null; return {product_id:String(row["itemid"]).trim(),name:String(row["title"]||"").trim(),shop_name:String(row["shop_name"]||row["seller_name"]||"").trim(),price:CSV.parsePrice(row["sale_price"]||row["price"]),sold:CSV.parseSold(row["item_sold"]),commission_rate:rate,commission_amount:0,product_url:String(row["product_link"]||"").trim(),offer_url:String(row["product_short link"]||"").trim(),image_url:String(row["image_link"]||"").trim()};}
+ if (!row || !row["รหัสสินค้า"]) return null;
 
 CSV.parsePrice = function(value){
 
