@@ -194,6 +194,15 @@ DB.isReady = function () {
    Save Products (Bulk Upsert)
 ===================================================== */
 
+DB.getAllProducts = function(){
+    return new Promise((resolve,reject)=>{
+        const tx=DB.db.transaction(DB.STORE,'readonly');
+        const req=tx.objectStore(DB.STORE).getAll();
+        req.onsuccess=()=>resolve(req.result);
+        req.onerror=()=>reject(req.error);
+    });
+};
+
 DB.saveProducts = function (products) {
 
     if(!Array.isArray(products)){

@@ -362,6 +362,13 @@ function bindEvents(){
             importCSV
         );
 
+    if(UI.btnCommission){
+        UI.btnCommission.addEventListener("click", async ()=>{
+            const f=UI.commissionFile.files[0];
+            if(f) await CSV.startCommissionImport(f);
+        });
+    }
+
     }
 
     // ค้นหา

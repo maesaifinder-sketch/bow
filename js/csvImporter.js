@@ -363,7 +363,6 @@ CSV.mapRow = function (row) {
     row["image_link_9"],
     row["image_link_10"],
     row["additional_image_link"]
-             
 ].find(url =>
     url &&
     String(url).trim() !== "" &&
@@ -595,4 +594,32 @@ CSV.clearResume = function(){
 
     );
 
+};
+
+
+CSV.startCommissionImport = async function(file){
+
+    const text = await file.text();
+
+    const rows = Papa.parse(text,{header:true, skipEmptyLines:true}).data;
+
+    const db = await DB.getAllProducts();
+    const map = new Map(db.map(p=>[String(p.product_id),p]));
+
+    let updated=[];
+
+    rows.forEach(r=>{
+        const id = String(r.itemid || r["itemid"] || "").trim();
+        const product = map.get(id);
+
+        if(product){
+            product.commission_rate = parseFloat(String(r.commission_rate || r["commission"] || r["ค่าคอมมิชชัน"] || 0).replace('%','')) || 0;
+            product.commission_amount = Number(String(r.commission_amount || r["commission_amount"] || r["ค่าคอม"] || 0).replace(/[^0-9.]/g,'')) || 0;
+            product.offer_url = String(r["product_short link"] || r.offer_url || r["ลิงก์ข้อเสนอ"] || product.offer_url || '').trim();
+            updated.push(product);
+        }
+    });
+
+    await DB.saveProducts(updated);
+    alert('อัปเดตค่าคอมแล้ว '+updated.length+' รายการ');
 };
