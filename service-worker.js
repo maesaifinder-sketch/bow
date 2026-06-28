@@ -17,6 +17,12 @@ const APP_FILES = [
     "./css/app.css",
 
     "./js/app.js",
+    
+    "./js/database.js",
+    
+    "./js/csvImporter.js",
+
+    "./js/vendor/papaparse.min.js",
 
     "./assets/icon192.png",
     "./assets/icon512.png"
