@@ -343,70 +343,54 @@ CSV.mapRow = function (row) {
 
     }
 
+    CSV.mapRow = function (row) {
+
+    if (!row || !row["itemid"]) {
+        return null;
+    }
+
+    const imageUrl = [
+        row["image_link"],
+        row["image_link_2"],
+        row["image_link_3"],
+        row["image_link_4"],
+        row["image_link_5"],
+        row["image_link_6"],
+        row["image_link_7"],
+        row["image_link_8"],
+        row["image_link_9"],
+        row["image_link_10"],
+        row["additional_image_link"]
+    ].find(url =>
+        url &&
+        String(url).trim() !== "" &&
+        String(url).trim().toLowerCase() !== "undefined"
+    );
+
     return {
 
-        product_id: String(
-            row["itemid"]
-        ).trim(),
+        product_id: String(row["itemid"]).trim(),
 
-        name: String(
-            row["title"] || ""
-        ).trim(),
+        name: String(row["title"] || "").trim(),
 
-        shop_name: String(
-            row["shop_name"] || ""
-        ).trim(),
+        shop_name: String(row["shop_name"] || "").trim(),
 
-        price: CSV.parsePrice(
-            row["price"]
-        ),
+        price: CSV.parsePrice(row["price"]),
 
-        sold: CSV.parseSold(
-            row["item_sold"]
-        ),
+        sold: CSV.parseSold(row["item_sold"]),
 
         commission_rate: 0,
 
         commission_amount: 0,
 
-        product_url: String(
-            row["product_link"] || ""
-        ).trim(),
+        product_url: String(row["product_link"] || "").trim(),
 
-        offer_url: String(
-            row["product_short link"] || ""
-        ).trim(),
+        offer_url: String(row["product_short link"] || "").trim(),
 
-        const imageUrl = [
-    row["image_link"],
-    row["image_link_2"],
-    row["image_link_3"],
-    row["image_link_4"],
-    row["image_link_5"],
-    row["image_link_6"],
-    row["image_link_7"],
-    row["image_link_8"],
-    row["image_link_9"],
-    row["image_link_10"],
-    row["additional_image_link"]
-].find(url =>
-    url &&
-    String(url).trim() !== "" &&
-    String(url).trim().toLowerCase() !== "undefined"
-);
+        image_url: imageUrl ? imageUrl.trim() : ""
 
-return {
-    product_id: String(row["itemid"]).trim(),
-    name: String(row["title"] || "").trim(),
-    shop_name: String(row["shop_name"] || "").trim(),
-    price: CSV.parsePrice(row["price"]),
-    sold: CSV.parseSold(row["item_sold"]),
-    commission_rate: 0,
-    commission_amount: 0,
-    product_url: String(row["product_link"] || "").trim(),
-    offer_url: String(row["product_short link"] || "").trim(),
+    };
 
-    image_url: imageUrl ? imageUrl.trim() : ""
 };
 
     };
