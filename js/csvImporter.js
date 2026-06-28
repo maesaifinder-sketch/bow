@@ -6,6 +6,8 @@
 
 "use strict";
 
+const DEBUG = false;
+
 const CSV = {
 
     file: null,
@@ -109,11 +111,15 @@ if(resume){
 
     }
 
+    if(DEBUG){
+
     console.log("Import Started");
 
     console.log(file.name);
 
     console.log(file.size);
+
+}
 
     await CSV.parse();
 
@@ -157,7 +163,11 @@ CSV.cancel = function () {
 
     CSV.buffer = [];
 
+    if(DEBUG){
+
     console.log("Import Cancelled");
+
+}
 
 };
 
@@ -185,6 +195,8 @@ CSV.parse = async function () {
     dynamicTyping: false,
 
     step: async function(result, parser){
+    
+    CSV.parser = parser;
 
     CSV.totalRows++;
 
@@ -280,26 +292,6 @@ CSV.saveBuffer = async function () {
 ========================================================== */
 
 CSV.updateProgress = function () {
-
-    const percent =
-
-        CSV.totalRows === 0
-
-        ? 0
-
-        : Math.floor(
-
-            (CSV.importedRows /
-
-             CSV.totalRows) * 100
-
-        );
-
-    console.log(
-
-        `Imported ${CSV.importedRows} rows`
-
-    );
 
     if (typeof updateImportStatus === "function") {
 
@@ -464,20 +456,6 @@ App.hasMore = true;
 
 await applyFilters();
 
-    // อัปเดต Dashboard
-    if (typeof updateSummary === "function") {
-
-        updateSummary();
-
-    }
-
-    // แสดงสินค้า
-    if (typeof renderProducts === "function") {
-
-        renderProducts();
-
-    }
-
     // ซ่อน Loading
     if (typeof hideLoading === "function") {
 
@@ -496,6 +474,8 @@ await applyFilters();
 
     }
 
+    if(DEBUG){
+
     console.log(
 
         "Import Finished",
@@ -503,6 +483,8 @@ await applyFilters();
         CSV.importedRows
 
     );
+
+}
 
 };
 

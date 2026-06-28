@@ -242,13 +242,6 @@ async function init(){
 
         await DB.init();
         
-        App.queryWorker =
-
-    new Worker(
-
-        "queryWorker.js"
-
-    );
 
 /*
 App.searchWorker = new Worker(
