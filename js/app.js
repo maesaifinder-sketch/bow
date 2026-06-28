@@ -60,7 +60,7 @@ prefetchData: [],
 
 hasMore: true,
 
-    csvFile: null,
+    csvFiles: [],
 
     loading: false,
 
@@ -108,9 +108,9 @@ let searchTimer = null;
 
 const UI = {
 
-    csvFile:
+    csvFiles:
 
-        document.getElementById("csvFile"),
+        document.getElementById("csvFiles"),
 
     btnImport:
 
@@ -187,15 +187,15 @@ function checkUI(){
 
     const required=[
 
-        "csvFile",
+    "csvFiles",
 
-        "btnImport",
+    "btnImport",
 
-        "searchInput",
+    "searchInput",
 
-        "productGrid"
+    "productGrid"
 
-    ];
+];
 
     required.forEach(id=>{
 
@@ -345,14 +345,14 @@ async function loadProducts(){
 function bindEvents(){
 
     // เลือกไฟล์ CSV
-    if(UI.csvFile){
+    if(UI.csvFiles){
 
-        UI.csvFile.addEventListener(
-            "change",
-            onFileSelected
-        );
+    UI.csvFiles.addEventListener(
+        "change",
+        onFileSelected
+    );
 
-    }
+}
 
     // ปุ่ม Import
     if(UI.btnImport){
@@ -478,44 +478,49 @@ if(UI.scrollContainer){
 
 function onFileSelected(event){
 
-    App.csvFile=
+    App.csvFiles = Array.from(event.target.files);
 
-    event.target.files[0];
-
-    if(!App.csvFile){
+    if(App.csvFiles.length === 0){
 
         return;
 
     }
 
-    UI.importStatus.textContent=
+    UI.importStatus.textContent =
 
-        App.csvFile.name;
+        `เลือกแล้ว ${App.csvFiles.length} ไฟล์`;
 
 }
+
 /* ==========================================================
    Import CSV
 ========================================================== */
 
 async function importCSV(){
 
-    if(!App.csvFile){
+    if(App.csvFiles.length === 0){
 
-        alert(
-
-            "กรุณาเลือกไฟล์"
-
-        );
+        alert("กรุณาเลือกไฟล์");
 
         return;
 
     }
 
-    await CSV.startImport(
+    for(const file of App.csvFiles){
 
-        App.csvFile
+        UI.importStatus.textContent =
 
-    );
+            `กำลัง Import : ${file.name}`;
+
+        await CSV.startImport(file);
+
+    }
+
+    UI.importStatus.textContent =
+
+        "Import เสร็จทั้งหมด";
+
+    alert("Import เสร็จทั้งหมด");
 
 }
 
