@@ -351,9 +351,11 @@ CSV.mapRow = function (row) {
             row["product_short link"] || ""
         ).trim(),
 
-        image_url: String(
-            row["image_link_4"] || ""
-        ).trim()
+        image_url:
+    row["image_link_4"] &&
+    row["image_link_4"] !== "undefined"
+        ? row["image_link_4"].trim()
+        : ""
 
     };
 

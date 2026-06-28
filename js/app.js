@@ -858,11 +858,11 @@ function createProductCard(product){
 
     card.innerHTML=`
 
-        <img
-    loading="lazy"
-    src="${product.image_url||''}"
-    alt=""
->
+        ${
+    product.image_url
+        ? `<img loading="lazy" src="${product.image_url}" alt="">`
+        : ""
+}
 
         <div class="product-body">
 
