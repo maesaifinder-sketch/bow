@@ -310,9 +310,54 @@ CSV.updateProgress = function () {
 ========================================================== */
 
 CSV.mapRow = function (row) {
- const isNew = row["itemid"]!==undefined;
- if(isNew){ const rate=CSV.parsePercent(row["cb_option"]||row["discount_percentage"]); if(rate<=10)return null; return {product_id:String(row["itemid"]).trim(),name:String(row["title"]||"").trim(),shop_name:String(row["shop_name"]||row["seller_name"]||"").trim(),price:CSV.parsePrice(row["sale_price"]||row["price"]),sold:CSV.parseSold(row["item_sold"]),commission_rate:rate,commission_amount:0,product_url:String(row["product_link"]||"").trim(),offer_url:String(row["product_short link"]||"").trim(),image_url:String(row["image_link"]||"").trim()};}
- if (!row || !row["รหัสสินค้า"]) return null;
+
+    if (!row || !row["itemid"]) {
+
+        return null;
+
+    }
+
+    return {
+
+        product_id: String(
+            row["itemid"]
+        ).trim(),
+
+        name: String(
+            row["title"] || ""
+        ).trim(),
+
+        shop_name: String(
+            row["shop_name"] || ""
+        ).trim(),
+
+        price: CSV.parsePrice(
+            row["price"]
+        ),
+
+        sold: CSV.parseSold(
+            row["item_sold"]
+        ),
+
+        commission_rate: 0,
+
+        commission_amount: 0,
+
+        product_url: String(
+            row["product_link"] || ""
+        ).trim(),
+
+        offer_url: String(
+            row["product_short link"] || ""
+        ).trim(),
+
+        image_url: String(
+            row["image_link_4"] || ""
+        ).trim()
+
+    };
+
+};
 
 CSV.parsePrice = function(value){
 
