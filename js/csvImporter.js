@@ -359,7 +359,8 @@ CSV.mapRow = function (row) {
     row["image_link_5"],
     row["image_link_6"],
     row["image_link_7"],
-    row["image_link_8"]
+    row["image_link_8"],
+    row["image_link_9"]
 ].find(url =>
     url &&
     String(url).trim() !== "" &&
