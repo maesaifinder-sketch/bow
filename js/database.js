@@ -1,37 +1,46 @@
-/* ===========================================================
-   Shopee Product Finder
-   database.js
-   IndexedDB Engine
-=========================================================== */
+/*
+=========================================================
+ Bow Product Finder
+ database.js v2.0
+ Core + Initialization
+=========================================================
+*/
 
 "use strict";
 
 const DB = {
 
-    NAME: "ShopeeFinderDB",
+    NAME: "BowDatabase",
 
-    VERSION: 1,
+    VERSION: 2,
 
-    DATABASE: null,
+    STORE: "products",
 
-    STORES: {
+    db: null,
+    
+    BATCH_SIZE: 500,
+    
+    queryCache: new Map(),
 
-        PRODUCTS: "products",
-
-        SETTINGS: "settings"
-
-    }
+maxCacheSize: 50
 
 };
 
+/* =====================================================
+   Open Database
+===================================================== */
 
-/* ===========================================================
-    Initialize Database
-=========================================================== */
-
-async function initDatabase() {
+DB.init = function () {
 
     return new Promise((resolve, reject) => {
+
+        if (!window.indexedDB) {
+
+            reject("IndexedDB is not supported.");
+
+            return;
+
+        }
 
         const request = indexedDB.open(
 
@@ -41,349 +50,1054 @@ async function initDatabase() {
 
         );
 
-        request.onerror = () => {
+        request.onerror = function (event) {
 
-            reject("Cannot open database.");
+            console.error(
+                "Database Open Error",
+                event.target.error
+            );
 
-        };
-
-        request.onsuccess = () => {
-
-            DB.DATABASE = request.result;
-
-            console.log("IndexedDB Ready");
-
-            resolve();
+            reject(event.target.error);
 
         };
 
-        request.onupgradeneeded = (event) => {
+        request.onsuccess = function (event) {
 
-            const database = event.target.result;
+            DB.db = event.target.result;
 
-            /* Products */
+            console.log(
+                "Database Ready"
+            );
 
-            if (!database.objectStoreNames.contains(DB.STORES.PRODUCTS)) {
-
-                const store = database.createObjectStore(
-
-                    DB.STORES.PRODUCTS,
-
-                    {
-
-                        keyPath: "product_id"
-
-                    }
-
-                );
-
-                store.createIndex("name", "name");
-
-                store.createIndex("cat", "cat");
-
-                store.createIndex("price", "price");
-
-                store.createIndex("rating", "rating");
-
-                store.createIndex("sales", "sales");
-
-                store.createIndex("score", "score");
-
-            }
-
-            /* Settings */
-
-            if (!database.objectStoreNames.contains(DB.STORES.SETTINGS)) {
-
-                database.createObjectStore(
-
-                    DB.STORES.SETTINGS,
-
-                    {
-
-                        keyPath: "key"
-
-                    }
-
-                );
-
-            }
+            resolve(DB.db);
 
         };
+
+        request.onupgradeneeded = function(event){
+
+    DB.db = event.target.result;
+
+    DB.createSchema(event);
+
+};
 
     });
 
-}
+};
+
+/* =====================================================
+   Create Schema
+===================================================== */
+
+DB.createSchema = function(event){
+
+    let store;
+
+    if (
+
+        !DB.db.objectStoreNames.contains(
+
+            DB.STORE
+
+        )
+
+    ) {
+
+        store = DB.db.createObjectStore(
+
+            DB.STORE,
+
+            {
+
+                keyPath: "product_id"
+
+            }
+
+        );
 
 
-/* ===========================================================
-    Add Product
-=========================================================== */
+    } else {
 
-async function addProduct(product) {
+        store =
 
-    return new Promise((resolve, reject) => {
+        event.target.transaction.objectStore(
 
-        const tx =
+            DB.STORE
 
-            DB.DATABASE.transaction(
+        );
 
-                DB.STORES.PRODUCTS,
-
-                "readwrite"
-
-            );
-
-        const store =
-
-            tx.objectStore(
-
-                DB.STORES.PRODUCTS
-
-            );
-
-        const request =
-
-            store.put(product);
-
-        request.onsuccess = () => {
-
-            resolve();
-
-        };
-
-        request.onerror = () => {
-
-            reject();
-
-        };
-
-    });
-
-}
-
-
-/* ===========================================================
-    Bulk Insert
-=========================================================== */
-
-async function addProducts(products) {
-
-    return new Promise((resolve, reject) => {
-
-        const tx =
-
-            DB.DATABASE.transaction(
-
-                DB.STORES.PRODUCTS,
-
-                "readwrite"
-
-            );
-
-        const store =
-
-            tx.objectStore(
-
-                DB.STORES.PRODUCTS
-
-            );
-
-        products.forEach(item => {
-    try {
-        store.put(item);
-    } catch (e) {
-        console.error("PUT ERROR", e, item);
     }
-});
 
-tx.oncomplete = () => {
-    console.log("Batch Saved");
-    resolve();
+    DB.createIndexes(store);
+
 };
 
-tx.onerror = (e) => {
-    console.error("Transaction Error", e);
-    reject(e);
-};
+/* =====================================================
+   Create Indexes
+===================================================== */
 
-        tx.oncomplete = () => {
+DB.createIndexes = function (store) {
 
-            resolve();
+    const indexes = [
 
-        };
+        "name",
 
-        tx.onerror = () => {
+        "shop_name",
 
-            reject();
+        "commission_rate",
 
-        };
+        "sold",
 
-    });
+        "price"
 
-}
+    ];
 
+    indexes.forEach(index => {
 
-/* ===========================================================
-    Get All Products
-=========================================================== */
+        if (
 
-async function getAllProducts() {
+            !store.indexNames.contains(index)
 
-    return new Promise((resolve, reject) => {
+        ) {
 
-        const tx =
+            store.createIndex(
 
-            DB.DATABASE.transaction(
+                index,
 
-                DB.STORES.PRODUCTS,
+                index,
 
-                "readonly"
+                {
+
+                    unique: false
+
+                }
 
             );
 
-        const store =
-
-            tx.objectStore(
-
-                DB.STORES.PRODUCTS
-
-            );
-
-        const request =
-
-            store.getAll();
-
-        request.onsuccess = () => {
-
-            resolve(request.result);
-
-        };
-
-        request.onerror = () => {
-
-            reject();
-
-        };
+        }
 
     });
 
-}
+};
 
+/* =====================================================
+   Database Ready ?
+===================================================== */
 
-/* ===========================================================
-    Search Product
-=========================================================== */
+DB.isReady = function () {
 
-async function searchProducts(keyword) {
+    return DB.db !== null;
 
-    const data = await getAllProducts();
+};
 
-    if (!keyword) return data;
+/* =====================================================
+   Save Products (Bulk Upsert)
+===================================================== */
 
-    keyword = keyword.toLowerCase();
+DB.saveProducts = function (products) {
 
-    return data.filter(item =>
+    if(!Array.isArray(products)){
 
-        item.name
+    return Promise.reject(
 
-            .toLowerCase()
-
-            .includes(keyword)
+        "Products must be an array."
 
     );
 
 }
 
+if(products.length===0){
 
-/* ===========================================================
-    Count Products
-=========================================================== */
+    return Promise.resolve(true);
 
-async function countProducts() {
+}
 
     return new Promise((resolve, reject) => {
 
-        const tx =
+        if (!DB.db) {
 
-            DB.DATABASE.transaction(
+            reject("Database not initialized.");
 
-                DB.STORES.PRODUCTS,
+            return;
 
-                "readonly"
+        }
 
-            );
+        const tx = DB.db.transaction(
 
-        const store =
+            DB.STORE,
 
-            tx.objectStore(
+            "readwrite"
 
-                DB.STORES.PRODUCTS
+        );
 
-            );
+        const store = tx.objectStore(
 
-        const request =
+            DB.STORE
 
-            store.count();
+        );
 
-        request.onsuccess = () => {
+        products.forEach(product => {
 
-            resolve(request.result);
+            store.put(product);
+
+        });
+
+        tx.oncomplete = function () {
+        
+        console.log(
+
+    "Batch Saved:",
+
+    products.length
+
+);
+
+            resolve(true);
 
         };
 
-        request.onerror = () => {
+        tx.onerror = function (event) {
 
-            reject();
+            console.error(
+
+                "Save Error",
+
+                event.target.error
+
+            );
+
+            reject(
+
+                event.target.error
+
+            );
 
         };
 
     });
 
-}
+};
 
+/* =====================================================
+   Get All Products
+===================================================== */
 
-/* ===========================================================
-    Clear Database
-=========================================================== */
-
-async function clearProducts() {
+DB.getAllProducts = function () {
 
     return new Promise((resolve, reject) => {
 
-        const tx =
+        const tx = DB.db.transaction(
 
-            DB.DATABASE.transaction(
+            DB.STORE,
 
-                DB.STORES.PRODUCTS,
+            "readonly"
 
-                "readwrite"
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.getAll();
+
+        request.onsuccess = function () {
+
+            resolve(
+
+                request.result
 
             );
 
-        const store =
+        };
 
-            tx.objectStore(
+        request.onerror = function () {
 
-                DB.STORES.PRODUCTS
+            reject(
+
+                request.error
 
             );
 
-        const request =
+        };
 
-            store.clear();
+    });
 
-        request.onsuccess = () => {
+};
 
-            resolve();
+/* ==========================================================
+   Count Products
+========================================================== */
+
+DB.countProducts = function(){
+
+    return new Promise((resolve,reject)=>{
+
+        const tx = DB.db.transaction(
+
+            DB.STORE,
+
+            "readonly"
+
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.count();
+
+        request.onsuccess = function(){
+
+            resolve(request.result);
 
         };
 
-        request.onerror = () => {
+        request.onerror = function(){
 
-            reject();
+            reject(request.error);
 
         };
+
+    });
+
+};
+
+/* =====================================================
+   Count Products
+===================================================== */
+
+DB.countProducts = function () {
+
+    return new Promise((resolve, reject) => {
+
+        const tx = DB.db.transaction(
+
+            DB.STORE,
+
+            "readonly"
+
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.count();
+
+        request.onsuccess = function () {
+
+            resolve(
+
+                request.result
+
+            );
+
+        };
+
+        request.onerror = function () {
+
+            reject(
+
+                request.error
+
+            );
+
+        };
+
+    });
+
+};
+
+/* =====================================================
+   Get Product
+===================================================== */
+
+DB.getProduct = function (productId) {
+
+    return new Promise((resolve, reject) => {
+
+        const tx = DB.db.transaction(
+
+            DB.STORE,
+
+            "readonly"
+
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.get(
+
+            productId
+
+        );
+
+        request.onsuccess = function () {
+
+            resolve(
+
+                request.result
+
+            );
+
+        };
+
+        request.onerror = function () {
+
+            reject(
+
+                request.error
+
+            );
+
+        };
+
+    });
+
+};
+
+/* =====================================================
+   Clear Database
+===================================================== */
+
+DB.clearProducts = function () {
+
+    return new Promise((resolve, reject) => {
+
+        const tx = DB.db.transaction(
+
+            DB.STORE,
+
+            "readwrite"
+
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.clear();
+
+        request.onsuccess = function () {
+
+            resolve(true);
+
+        };
+
+        request.onerror = function () {
+
+            reject(
+
+                request.error
+
+            );
+
+        };
+
+    });
+
+};
+
+/* ==========================================================
+   Query Products
+========================================================== */
+
+DB.queryProducts = async function(options = {}) {
+
+options = {
+
+    limit: 100,
+
+    offset: 0,
+
+    ...options
+
+};
+
+const cacheKey = JSON.stringify({
+
+    keyword: options.keyword,
+
+    minCommission: options.minCommission,
+
+    minSold: options.minSold,
+
+    sort: options.sort,
+
+    limit: options.limit,
+
+    offset: options.offset
+
+});
+
+if(DB.queryCache.has(cacheKey)){
+
+    return DB.queryCache.get(cacheKey);
+
+}
+
+    return new Promise((resolve, reject) => {
+    
+    const queryStart = performance.now();
+
+        const tx = DB.db.transaction(
+            DB.STORE,
+            "readonly"
+        );
+
+        const store = tx.objectStore(DB.STORE);
+
+let request;
+
+// ใช้ Index + KeyRange สำหรับค่าคอม
+if(
+    options.minCommission > 0 &&
+    !options.keyword &&
+    !options.minSold
+){
+
+    const index = store.index("commission_rate");
+
+    request = index.openCursor(
+
+        IDBKeyRange.lowerBound(
+
+            options.minCommission
+
+        )
+
+    );
+
+}
+
+// ใช้ Index + KeyRange สำหรับยอดขาย
+else if(
+    options.minSold > 0 &&
+    !options.keyword &&
+    !options.minCommission
+){
+
+    const index = store.index("sold");
+
+    request = index.openCursor(
+
+        IDBKeyRange.lowerBound(
+
+            options.minSold
+
+        )
+
+    );
+
+}
+
+// กรณีทั่วไป
+else{
+
+    request = store.openCursor();
+
+}
+
+        const products = [];
+        
+        let skipped = 0;
+
+let loaded = 0;
+
+        request.onsuccess = function(event){
+
+            const cursor = event.target.result;
+
+            if(cursor){
+
+                const product = cursor.value;
+                
+                if(
+
+    skipped < options.offset
+
+){
+
+    skipped++;
+
+    cursor.continue();
+
+    return;
+
+}
+
+                // Keyword
+                if(options.keyword){
+
+                    const keyword =
+                        options.keyword.toLowerCase();
+
+                    const matched =
+
+                        String(product.product_id)
+                        .toLowerCase()
+                        .includes(keyword)
+
+                        ||
+
+                        String(product.name)
+                        .toLowerCase()
+                        .includes(keyword)
+
+                        ||
+
+                        String(product.shop_name)
+                        .toLowerCase()
+                        .includes(keyword);
+
+                    if(!matched){
+
+                        cursor.continue();
+
+                        return;
+
+                    }
+
+                }
+
+                // Commission
+                if(
+                    options.minCommission &&
+                    product.commission_rate <
+                    options.minCommission
+                ){
+
+                    cursor.continue();
+
+                    return;
+
+                }
+
+                // Sold
+                if(
+                    options.minSold &&
+                    product.sold <
+                    options.minSold
+                ){
+
+                    cursor.continue();
+
+                    return;
+
+                }
+
+                products.push(product);
+
+loaded++;
+
+if(
+
+    loaded >= options.limit
+
+){
+
+    DB.queryCache.set(
+
+        cacheKey,
+
+        products
+
+    );
+
+    if(
+
+        DB.queryCache.size >
+
+        DB.maxCacheSize
+
+    ){
+
+        const firstKey =
+
+            DB.queryCache.keys().next().value;
+
+        DB.queryCache.delete(firstKey);
+
+    }
+    
+App.performance.queryTime =
+
+    performance.now()
+
+    - queryStart;
+
+App.performance.queryCount++;
+
+    resolve(products);
+
+    return;
+
+}
+
+                cursor.continue();
+
+            }
+            else{
+
+    DB.queryCache.set(
+
+        cacheKey,
+
+        products
+
+    );
+
+    if(
+
+        DB.queryCache.size >
+
+        DB.maxCacheSize
+
+    ){
+
+        const firstKey =
+
+            DB.queryCache.keys().next().value;
+
+        DB.queryCache.delete(firstKey);
+
+    }
+    
+    App.performance.queryTime =
+
+    performance.now()
+
+    - queryStart;
+
+App.performance.queryCount++;
+
+    resolve(products);
+
+}
+
+        };
+
+        request.onerror = function(){
+
+            reject(request.error);
+
+        };
+
+    });
+
+};
+
+/* =====================================================
+   Search + Filter
+===================================================== */
+
+DB.searchAndFilter = function (options = {}) {
+
+    return new Promise((resolve, reject) => {
+
+        const keyword = (options.keyword || "").trim().toLowerCase();
+
+        const minCommission = Number(options.minCommission || 0);
+
+        const minSold = Number(options.minSold || 0);
+
+        const tx = DB.db.transaction(
+
+            DB.STORE,
+
+            "readonly"
+
+        );
+
+        const store = tx.objectStore(
+
+            DB.STORE
+
+        );
+
+        const request = store.openCursor();
+
+        const result = [];
+
+        request.onerror = function () {
+
+            reject(request.error);
+
+        };
+
+        request.onsuccess = function (event) {
+
+            const cursor = event.target.result;
+
+            if (!cursor) {
+
+                resolve(result);
+
+                return;
+
+            }
+
+            const item = cursor.value;
+
+            let pass = true;
+
+            if (keyword !== "") {
+
+                const text = (
+
+                    String(item.product_id) +
+
+                    " " +
+
+                    String(item.name) +
+
+                    " " +
+
+                    String(item.shop_name)
+
+                ).toLowerCase();
+
+                if (!text.includes(keyword)) {
+
+                    pass = false;
+
+                }
+
+            }
+
+            if (
+
+                Number(item.commission_rate)
+
+                <
+
+                minCommission
+
+            ) {
+
+                pass = false;
+
+            }
+
+            if (
+
+                Number(item.sold)
+
+                <
+
+                minSold
+
+            ) {
+
+                pass = false;
+
+            }
+
+            if (pass) {
+
+                result.push(item);
+
+            }
+
+            cursor.continue();
+
+        };
+
+    });
+
+};
+
+/* =====================================================
+   Search Only
+===================================================== */
+
+DB.searchProducts = function(keyword){
+
+    return DB.searchAndFilter({
+
+        keyword:keyword
+
+    });
+
+};
+
+/* =====================================================
+   Filter Only
+===================================================== */
+
+DB.filterProducts=function(options){
+
+    return DB.searchAndFilter(options);
+
+};
+
+/* =====================================================
+   Sort
+===================================================== */
+
+DB.sortProducts=function(
+
+    products,
+
+    mode
+
+){
+
+    switch(mode){
+
+        case "commission_desc":
+
+            products.sort(
+
+                (a,b)=>
+
+                b.commission_rate
+
+                -
+
+                a.commission_rate
+
+            );
+
+        break;
+
+        case "sold_desc":
+
+            products.sort(
+
+                (a,b)=>
+
+                b.sold-a.sold
+
+            );
+
+        break;
+
+        case "price_desc":
+
+            products.sort(
+
+                (a,b)=>
+
+                b.price-a.price
+
+            );
+
+        break;
+
+        case "price_asc":
+
+            products.sort(
+
+                (a,b)=>
+
+                a.price-b.price
+
+            );
+
+        break;
+
+        case "name_asc":
+
+            products.sort(
+
+                (a,b)=>
+
+                a.name.localeCompare(
+
+                    b.name
+
+                )
+
+            );
+
+        break;
+
+    }
+
+    return products;
+
+};
+
+/* ==========================================================
+   Clear Query Cache
+========================================================== */
+
+DB.clearQueryCache = function(){
+
+    DB.queryCache.clear();
+
+    console.log(
+
+        "Query Cache Cleared"
+
+    );
+
+};
+
+DB.countQueryProducts = async function(options){
+
+    options = {
+
+        keyword: "",
+
+        minCommission: 0,
+
+        minSold: 0,
+
+        ...options
+
+    };
+
+    const products = await DB.queryProducts({
+
+        ...options,
+
+        limit: 100000000,
+
+        offset: 0
+
+    });
+
+    return products.length;
+
+};
+
+function showPerformance(){
+
+    console.table({
+
+        Render:
+
+            App.performance.renderTime.toFixed(2)+" ms",
+
+        Query:
+
+            App.performance.queryTime.toFixed(2)+" ms",
+
+        RenderBatch:
+
+            App.renderBatch,
+
+        RenderCount:
+
+            App.performance.renderCount,
+
+        QueryCount:
+
+            App.performance.queryCount
 
     });
 

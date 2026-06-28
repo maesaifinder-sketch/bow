@@ -1,231 +1,579 @@
 /* ==========================================================
-   Shopee Product Finder
-   csvImporter.js
+   Bow Product Finder
+   csvImporter.js v2.0
+   Production Build
 ========================================================== */
 
 "use strict";
 
-const CSVImporter = {
+const CSV = {
 
-    BATCH_SIZE: 500,
+    file: null,
 
-    rows: [],
+    parser: null,
 
-    imported: 0
+    buffer: [],
+
+    totalRows: 0,
+
+    importedRows: 0,
+
+    skippedRows: 0,
+
+    batchSize: 500,
+
+    isImporting: false,
+
+    resumeRow: 0,
+
+    resumeEnabled: true,
+
+    lastSaveTime: 0
 
 };
 
-
 /* ==========================================================
-    Import CSV
+   Start Import
 ========================================================== */
 
-async function importCSVFile(file){
+CSV.startImport = async function (file) {
 
-    if(!file){
+    if (!file) {
 
-        alert("กรุณาเลือกไฟล์ CSV");
+        throw new Error("No CSV file selected.");
+
+    }
+
+    if (CSV.isImporting) {
+
+        alert("กำลัง Import อยู่");
 
         return;
 
     }
 
-    CSVImporter.rows=[];
+    CSV.reset();
 
-    CSVImporter.imported=0;
+    CSV.file = file;
+    
+    const resume = CSV.loadResume();
 
-    showLoading();
+if(resume){
 
-    importStatus.innerHTML="กำลังอ่านไฟล์...";
+    const ok = confirm(
 
-    await clearProducts();
+        `พบการนำเข้าที่ยังค้างอยู่\n\n`+
 
-    Papa.parse(file,{
+        `นำเข้าแล้ว ${resume.importedRows.toLocaleString()} แถว\n\n`+
 
-    header:true,
-
-    skipEmptyLines:true,
-
-    worker:true,
-
-    dynamicTyping:false,
-
-    complete:async function(results){
-
-        console.log("CSV Rows =", results.data.length);
-
-        console.log("First Row =", results.data[0]);
-
-        CSVImporter.rows=results.data;
-
-        await saveBatch();
-
-    },
-
-    error:function(error){
-
-        hideLoading();
-
-        console.error(error);
-
-        alert(error.message);
-
-    }
-
-});
-
-}
-
-
-/* ==========================================================
-    Save Batch
-========================================================== */
-
-async function saveBatch(){
-
-    const total=CSVImporter.rows.length;
-
-    while(CSVImporter.imported<total){
-
-        const batch=
-
-        CSVImporter.rows.slice(
-
-            CSVImporter.imported,
-
-            CSVImporter.imported+
-
-            CSVImporter.BATCH_SIZE
-
-        );
-
-        const products=batch.map(row=>({
-
-            product_id:String(row.product_id),
-
-            name:row.name,
-
-            cat:row.cat,
-
-            cat_id:row.cat_id,
-
-            price:Number(row.price)||0,
-
-            rating:Number(row.rating)||0,
-
-            sales:Number(row.sales)||0,
-
-            revenue:Number(row.revenue)||0,
-
-            creators:Number(row.creators)||0,
-
-            score:Number(row.score)||0,
-
-            img:row.img,
-
-            tiktok_url:row.tiktok_url
-
-        }));
-
-
-        // ===== เพิ่มตรงนี้ =====
-
-        console.log("Saving batch", CSVImporter.imported);
-
-        await addProducts(products);
-
-        console.log("Batch OK");
-
-        // =======================
-
-
-        CSVImporter.imported+=batch.length;
-
-        updateProgress(
-
-            CSVImporter.imported,
-
-            total
-
-        );
-
-        await waitFrame();
-
-    }
-
-    importFinished();
-
-}
-
-
-/* ==========================================================
-    Progress
-========================================================== */
-
-function updateProgress(current,total){
-
-    const percent=
-
-    Math.floor(
-
-        current/
-
-        total*
-
-        100
+        `ต้องการนำเข้าต่อหรือไม่?`
 
     );
 
-    importStatus.innerHTML=
+    if(ok){
 
-        `Import ${current.toLocaleString()} / ${total.toLocaleString()} (${percent}%)`;
+        CSV.resumeRow =
 
-}
+            resume.importedRows;
+            CSV.importedRows =
 
+    CSV.resumeRow;
 
-/* ==========================================================
-    Finish
-========================================================== */
+    }
 
-async function importFinished(){
+    else{
 
-    hideLoading();
+        CSV.clearResume();
 
-    const count=
+        CSV.resumeRow = 0;
+        
+        CSV.lastSaveTime = 0;
+        
+        CSV.importedRows = 0;
 
-    await countProducts();
-
-    totalProducts.innerHTML=count;
-
-    totalResults.innerHTML=count;
-
-    importStatus.innerHTML=
-
-    "Import สำเร็จ";
-
-    App.products=
-
-    await getAllProducts();
-
-    App.filtered=
-
-    [...App.products];
-
-    renderProducts();
+    }
 
 }
 
+    CSV.isImporting = true;
+
+    if (typeof showLoading === "function") {
+
+        showLoading("กำลังนำเข้าข้อมูล...");
+
+    }
+
+    if (typeof updateImportStatus === "function") {
+
+        updateImportStatus("กำลังอ่านไฟล์...");
+
+    }
+
+    console.log("Import Started");
+
+    console.log(file.name);
+
+    console.log(file.size);
+
+    await CSV.parse();
+
+};
 
 /* ==========================================================
-    Helper
+   Reset
 ========================================================== */
 
-function waitFrame(){
+CSV.reset = function () {
 
-    return new Promise(resolve=>{
+    CSV.file = null;
 
-        requestAnimationFrame(resolve);
+    CSV.parser = null;
+
+    CSV.buffer = [];
+
+    CSV.totalRows = 0;
+
+    CSV.importedRows = 0;
+
+    CSV.skippedRows = 0;
+
+    CSV.isImporting = false;
+
+};
+
+/* ==========================================================
+   Cancel Import
+========================================================== */
+
+CSV.cancel = function () {
+
+    if (CSV.parser) {
+
+        CSV.parser.abort();
+
+    }
+
+    CSV.isImporting = false;
+
+    CSV.buffer = [];
+
+    console.log("Import Cancelled");
+
+};
+
+/* ==========================================================
+   Parse CSV
+   (Phase 2.2)
+========================================================== */
+
+/* ==========================================================
+   Parse CSV (Streaming)
+========================================================== */
+
+CSV.parse = async function () {
+
+    return new Promise((resolve, reject) => {
+
+        Papa.parse(CSV.file, {
+
+    header: true,
+
+    worker: true,
+
+    skipEmptyLines: true,
+
+    dynamicTyping: false,
+
+    step: async function(result, parser){
+
+    CSV.totalRows++;
+
+    if(CSV.totalRows <= CSV.resumeRow){
+
+        return;
+
+    }
+
+    const product = CSV.mapRow(result.data);
+
+    if(product){
+
+        CSV.buffer.push(product);
+
+    }
+
+    if(CSV.buffer.length >= CSV.batchSize){
+
+        parser.pause();
+
+        await CSV.saveBuffer();
+
+        parser.resume();
+
+    }
+
+},
+
+            complete: async function () {
+
+                try {
+
+                    if (CSV.buffer.length > 0) {
+
+                        await CSV.saveBuffer();
+
+                    }
+
+                    await CSV.finish();
+
+                    resolve(true);
+
+                } catch (err) {
+
+                    reject(err);
+
+                }
+
+            },
+
+            error: function (err) {
+
+                reject(err);
+
+            }
+
+        });
 
     });
 
-}
+};
+
+/* ==========================================================
+   Save Buffer
+========================================================== */
+
+CSV.saveBuffer = async function () {
+
+    if (CSV.buffer.length === 0) {
+
+        return;
+
+    }
+
+    const batch = [...CSV.buffer];
+
+    // ล้าง Buffer เพื่อรับข้อมูลชุดใหม่
+    CSV.buffer.length = 0;
+
+    await DB.saveProducts(batch);
+
+    CSV.importedRows += batch.length;
+
+    CSV.saveResume();
+
+    CSV.updateProgress();
+
+};
+
+/* ==========================================================
+   Update Progress
+========================================================== */
+
+CSV.updateProgress = function () {
+
+    const percent =
+
+        CSV.totalRows === 0
+
+        ? 0
+
+        : Math.floor(
+
+            (CSV.importedRows /
+
+             CSV.totalRows) * 100
+
+        );
+
+    console.log(
+
+        `Imported ${CSV.importedRows} rows`
+
+    );
+
+    if (typeof updateImportStatus === "function") {
+
+        updateImportStatus(
+
+            `Import ${CSV.importedRows.toLocaleString()} รายการ`
+
+        );
+
+    }
+
+};
+
+/* ==========================================================
+   Map CSV Row
+========================================================== */
+
+CSV.mapRow = function (row) {
+
+    if (!row || !row["รหัสสินค้า"]) {
+
+        return null;
+
+    }
+
+    return {
+
+        product_id: String(row["รหัสสินค้า"]).trim(),
+
+        name: String(row["ชื่อสินค้า"] || "").trim(),
+
+        shop_name: String(row["ชื่อร้านค้า"] || "").trim(),
+
+        price: CSV.parsePrice(row["ราคา"]),
+
+        sold: CSV.parseSold(row["ขาย"]),
+
+        commission_rate: CSV.parsePercent(
+            row["อัตราค่าคอมมิชชัน"]
+        ),
+
+        commission_amount: CSV.parseMoney(
+            row["คอมมิชชัน"]
+        ),
+
+        product_url: String(
+            row["ลิงก์สินค้า"] || ""
+        ).trim(),
+
+        offer_url: String(
+            row["ลิงก์ข้อเสนอ"] || ""
+        ).trim(),
+
+        image_url: ""
+
+    };
+
+};
+
+CSV.parsePrice = function(value){
+
+    if(!value) return 0;
+
+    value = String(value)
+        .replace(/,/g,"")
+        .replace(/฿/g,"")
+        .trim();
+
+    if(value.includes("พัน")){
+
+        value = parseFloat(value)*1000;
+
+    }
+
+    return Number(value)||0;
+
+};
+
+CSV.parsePercent = function(value){
+
+    if(!value) return 0;
+
+    return Number(
+
+        String(value)
+
+        .replace("%","")
+
+    )||0;
+
+};
+
+CSV.parseMoney=function(value){
+
+    if(!value) return 0;
+
+    value=String(value)
+
+    .replace(/฿/g,"")
+
+    .replace(/,/g,"")
+
+    .trim();
+
+    return Number(value)||0;
+
+};
+
+CSV.parseSold=function(value){
+
+    if(!value) return 0;
+
+    value=String(value).trim();
+
+    if(value.includes("พัน")){
+
+        return parseFloat(value)*1000;
+
+    }
+
+    if(value.includes("หมื่น")){
+
+        return parseFloat(value)*10000;
+
+    }
+
+    if(value.includes("แสน")){
+
+        return parseFloat(value)*100000;
+
+    }
+
+    value=value.replace("+","");
+
+    return Number(value)||0;
+
+};
+
+/* ==========================================================
+   Finish Import
+========================================================== */
+
+CSV.finish = async function () {
+
+    CSV.clearResume();
+    
+    DB.clearQueryCache();
+    
+    CSV.isImporting = false;
+
+    App.totalProducts =
+
+    await DB.countProducts();
+
+App.totalResults =
+
+    App.totalProducts;
+
+App.queryOffset = 0;
+
+App.hasMore = true;
+
+await applyFilters();
+
+    // อัปเดต Dashboard
+    if (typeof updateSummary === "function") {
+
+        updateSummary();
+
+    }
+
+    // แสดงสินค้า
+    if (typeof renderProducts === "function") {
+
+        renderProducts();
+
+    }
+
+    // ซ่อน Loading
+    if (typeof hideLoading === "function") {
+
+        hideLoading();
+
+    }
+
+    // แสดงสถานะ
+    if (typeof updateImportStatus === "function") {
+
+        updateImportStatus(
+
+            `Import สำเร็จ ${CSV.importedRows.toLocaleString()} รายการ`
+
+        );
+
+    }
+
+    console.log(
+
+        "Import Finished",
+
+        CSV.importedRows
+
+    );
+
+};
+
+/* ==========================================================
+   Save Resume
+========================================================== */
+
+CSV.saveResume = function(){
+
+    if(!CSV.resumeEnabled){
+
+        return;
+
+    }
+
+    localStorage.setItem(
+
+        "csv_resume",
+
+        JSON.stringify({
+
+            importedRows:
+
+                CSV.importedRows,
+
+            totalRows:
+
+                CSV.totalRows,
+
+            time:
+
+                Date.now()
+
+        })
+
+    );
+
+};
+
+/* ==========================================================
+   Load Resume
+========================================================== */
+
+CSV.loadResume = function(){
+
+    const text = localStorage.getItem(
+
+        "csv_resume"
+
+    );
+
+    if(!text){
+
+        return null;
+
+    }
+
+    return JSON.parse(text);
+
+};
+
+/* ==========================================================
+   Clear Resume
+========================================================== */
+
+CSV.clearResume = function(){
+
+    localStorage.removeItem(
+
+        "csv_resume"
+
+    );
+
+};
