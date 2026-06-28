@@ -214,9 +214,41 @@ button:hover{
 }
 
 
-/* ---------- Product Grid ---------- */
+/* ---------- Virtual Product Grid ---------- */
+
+.scroll-container{
+
+    position:relative;
+
+    height:calc(100vh - 220px);
+
+    overflow-y:auto;
+
+    overflow-x:hidden;
+
+    width:100%;
+
+}
+
+#virtualSpacer{
+
+    width:100%;
+
+    height:0;
+
+    pointer-events:none;
+
+}
 
 .product-grid{
+
+    position:absolute;
+
+    top:0;
+
+    left:0;
+
+    width:100%;
 
     display:grid;
 
@@ -225,6 +257,8 @@ button:hover{
         repeat(auto-fill,minmax(260px,1fr));
 
     gap:18px;
+
+    padding:12px;
 
 }
 
@@ -351,6 +385,8 @@ grid-template-columns:
 
 repeat(3,1fr);
 
+width:100%;
+
 }
 
 }
@@ -379,6 +415,8 @@ grid-template-columns:
 repeat(2,1fr);
 
 gap:12px;
+
+width:100%;
 
 }
 
@@ -412,5 +450,77 @@ grid-template-columns:1fr;
 padding:10px;
 
 }
+
+}
+
+/* ==========================================================
+   Virtual Scroll
+========================================================== */
+
+.scroll-container{
+
+    position: relative;
+
+    height: calc(100vh - 220px);
+
+    overflow-y: auto;
+
+    overflow-x: hidden;
+
+    width: 100%;
+
+    border-radius: 12px;
+
+}
+
+#virtualSpacer{
+
+    width: 100%;
+
+    height: 0;
+
+    pointer-events: none;
+
+}
+
+.product-grid{
+
+    position: absolute;
+
+    top: 0;
+
+    left: 0;
+
+    width: 100%;
+
+    display: grid;
+
+    grid-template-columns:
+
+        repeat(
+
+            auto-fill,
+
+            minmax(260px,1fr)
+
+        );
+
+    gap: 16px;
+
+    padding: 12px;
+
+    box-sizing: border-box;
+
+}
+
+.load-more-status{
+
+    padding:20px;
+
+    text-align:center;
+
+    color:#777;
+
+    font-size:14px;
 
 }
