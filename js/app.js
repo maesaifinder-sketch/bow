@@ -498,7 +498,7 @@ function onFileSelected(event){
 
 async function importCSV(){
 
-    if(App.csvFiles.length === 0){
+    if(App.csvFiles.length===0){
 
         alert("กรุณาเลือกไฟล์");
 
@@ -506,21 +506,11 @@ async function importCSV(){
 
     }
 
-    for(const file of App.csvFiles){
+    await CSV.startImportFiles(
 
-        UI.importStatus.textContent =
+        App.csvFiles
 
-            `กำลัง Import : ${file.name}`;
-
-        await CSV.startImport(file);
-
-    }
-
-    UI.importStatus.textContent =
-
-        "Import เสร็จทั้งหมด";
-
-    alert("Import เสร็จทั้งหมด");
+    );
 
 }
 

@@ -29,6 +29,16 @@ const CSV = {
     resumeRow: 0,
 
     resumeEnabled: true,
+    
+    currentFileIndex:0,
+
+totalFiles:0,
+
+completedFiles:[],
+
+failedFiles:[],
+
+queueRunning:false,
 
     lastSaveTime: 0
 
@@ -54,7 +64,7 @@ CSV.startImport = async function (file) {
 
     }
 
-    CSV.reset();
+    CSV.resetFileState();
 
     CSV.file = file;
     
@@ -144,6 +154,22 @@ CSV.reset = function () {
     CSV.skippedRows = 0;
 
     CSV.isImporting = false;
+
+};
+
+CSV.resetFileState=function(){
+
+    CSV.file=null;
+
+    CSV.parser=null;
+
+    CSV.buffer=[];
+
+    CSV.totalRows=0;
+
+    CSV.importedRows=0;
+
+    CSV.skippedRows=0;
 
 };
 
@@ -622,4 +648,71 @@ CSV.startCommissionImport = async function(file){
 
     await DB.saveProducts(updated);
     alert('อัปเดตค่าคอมแล้ว '+updated.length+' รายการ');
+    
+    CSV.startImportFiles = async function(files){
+
+    CSV.totalFiles = files.length;
+
+    CSV.completedFiles = [];
+
+    CSV.failedFiles = [];
+
+    CSV.queueRunning = true;
+
+    for(let i=0;i<files.length;i++){
+
+        CSV.currentFileIndex = i;
+
+        if(typeof UI!=="undefined"){
+
+            UI.importStatus.textContent=
+
+                `กำลัง Import ${i+1}/${files.length}
+
+${files[i].name}`;
+
+        }
+
+        try{
+
+            await CSV.startImport(files[i]);
+
+            CSV.completedFiles.push(
+
+                files[i].name
+
+            );
+
+        }
+
+        catch(error){
+
+            console.error(error);
+
+            CSV.failedFiles.push({
+
+                file:files[i].name,
+
+                error:error.message
+
+            });
+
+        }
+
+    }
+
+    CSV.queueRunning=false;
+
+    alert(
+
+        `Import Complete
+
+Success : ${CSV.completedFiles.length}
+
+Failed : ${CSV.failedFiles.length}`
+
+    );
+
+};
+
 };
