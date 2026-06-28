@@ -53,17 +53,62 @@
 
     <!-- Search -->
 
-    <section class="card">
+    <!-- Toolbar -->
+
+<section class="card">
+
+    <div class="toolbar">
 
         <input
-
             id="searchInput"
-
             type="text"
+            placeholder="ค้นหา ชื่อสินค้า / รหัสสินค้า / ร้านค้า">
 
-            placeholder="ค้นหาชื่อสินค้า...">
+        <input
+            id="commissionInput"
+            type="number"
+            placeholder="ค่าคอมขั้นต่ำ %">
 
-    </section>
+        <input
+            id="soldInput"
+            type="number"
+            placeholder="ยอดขายขั้นต่ำ">
+
+        <select id="sortSelect">
+
+            <option value="commission_desc">
+                ค่าคอมมาก → น้อย
+            </option>
+
+            <option value="sold_desc">
+                ยอดขายมาก → น้อย
+            </option>
+
+            <option value="price_desc">
+                ราคาแพง → ถูก
+            </option>
+
+            <option value="price_asc">
+                ราคาถูก → แพง
+            </option>
+
+        </select>
+
+        <button id="btnExport">
+
+            Export CSV
+
+        </button>
+
+        <button id="btnReset">
+
+            Reset
+
+        </button>
+
+    </div>
+
+</section>
 
     <!-- Summary -->
 
@@ -95,15 +140,51 @@
 
     <section>
 
-        <div
+    <div id="scrollContainer" class="scroll-container">
 
-            id="productGrid"
+    <div id="virtualSpacer"></div>
 
-            class="product-grid">
+    <div id="productGrid"
 
-        </div>
+     class="product-grid">
 
-    </section>
+</div>
+
+<div id="loadMoreStatus"
+
+     class="load-more-status">
+
+</div>
+
+</div>
+
+</section>
+
+<section class="pagination">
+
+    <button
+
+        onclick="prevPage()">
+
+        ◀ ก่อนหน้า
+
+    </button>
+
+    <span id="pageInfo">
+
+        หน้า 1 / 1
+
+    </span>
+
+    <button
+
+        onclick="nextPage()">
+
+        ถัดไป ▶
+
+    </button>
+
+</section>
 
 </main>
 
