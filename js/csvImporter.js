@@ -352,9 +352,9 @@ CSV.mapRow = function (row) {
         ).trim(),
 
         image_url:
-    row["image_link_4"] &&
-    row["image_link_4"] !== "undefined"
-        ? row["image_link_4"].trim()
+    row["image_link"] &&
+    row["image_link"] !== "undefined"
+        ? row["image_link"].trim()
         : ""
 
     };
