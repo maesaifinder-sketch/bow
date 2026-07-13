@@ -12,7 +12,7 @@
 
 const App = {
 
-    version: "2.0.0",
+    version: "2.0.1",
 
     initialized: false,
     
@@ -111,6 +111,12 @@ const UI = {
     csvFiles:
 
         document.getElementById("csvFiles"),
+        
+    commissionFile:
+document.getElementById("commissionFile"),
+
+btnCommission:
+document.getElementById("btnCommission"),
 
     btnImport:
 
@@ -192,16 +198,13 @@ loadMoreStatus:
 function checkUI(){
 
     const required=[
-
-        "csvFiles",
-
-        "btnImport",
-
-        "searchInput",
-
-        "productBody"
-
-    ];
+    "csvFiles",
+    "commissionFile",
+    "btnCommission",
+    "btnImport",
+    "searchInput",
+    "productBody"
+];
 
     required.forEach(id=>{
 
@@ -468,16 +471,6 @@ if(UI.btnExport){
     );
 
 }
-
-    // Export CSV
-    if(UI.btnExport){
-
-        UI.btnExport.addEventListener(
-            "click",
-            exportCSV
-        );
-
-    }
 
 if(UI.scrollContainer){
 
