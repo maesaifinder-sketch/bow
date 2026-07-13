@@ -40,9 +40,11 @@ CSV.startCommissionImport = async function(file){
 
         if(!id) return;
 
-        const item = DB.products[id];
+        if(!DB.products[id]){
+    DB.products[id] = {};
+}
 
-        if(!item) return;
+const item = DB.products[id];
 
         item.commission =
             row["ค่าคอมมิชชั่น"] ||
