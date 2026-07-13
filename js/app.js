@@ -119,6 +119,9 @@ const UI = {
     btnReset:
 
         document.getElementById("btnReset"),
+        
+    btnFactoryReset:
+        document.getElementById("btnFactoryReset"),
 
     btnExport:
 
@@ -445,6 +448,26 @@ function bindEvents(){
         );
 
     }
+    
+    // Factory Reset
+if(UI.btnFactoryReset){
+
+    UI.btnFactoryReset.addEventListener(
+        "click",
+        factoryReset
+    );
+
+}
+
+// Export CSV
+if(UI.btnExport){
+
+    UI.btnExport.addEventListener(
+        "click",
+        exportCSV
+    );
+
+}
 
     // Export CSV
     if(UI.btnExport){
@@ -1357,6 +1380,66 @@ async function prefetchNextPage(){
     });
 
     App.prefetchRunning = false;
+
+}
+
+async function factoryReset(){
+
+    const ok = confirm(
+        "รีเซ็ตระบบทั้งหมด?\n\nข้อมูลสินค้าและการตั้งค่าจะถูกลบทั้งหมด"
+    );
+
+    if(!ok){
+        return;
+    }
+
+    try{
+
+        showLoading("กำลังรีเซ็ตระบบ...");
+
+        // ลบฐานข้อมูลสินค้า
+        await DB.clearProducts();
+
+        // ล้าง Cache
+        DB.clearQueryCache();
+
+        // ล้าง LocalStorage
+        localStorage.clear();
+
+        // ล้าง Session
+        sessionStorage.clear();
+
+        // ลบ IndexedDB ทั้งฐาน
+        await new Promise((resolve,reject)=>{
+
+            if(DB.db){
+                DB.db.close();
+            }
+
+            const req = indexedDB.deleteDatabase(DB.NAME);
+
+            req.onsuccess = ()=>resolve();
+
+            req.onerror = ()=>reject(req.error);
+
+            req.onblocked = ()=>{
+                alert("กรุณาปิดแท็บอื่นของโปรแกรมก่อน");
+            };
+
+        });
+
+        alert("รีเซ็ตเรียบร้อย");
+
+        location.reload();
+
+    }
+    catch(err){
+
+        console.error(err);
+
+        alert("รีเซ็ตไม่สำเร็จ");
+
+    }
 
 }
 
