@@ -3,7 +3,7 @@
    Service Worker v1.0.0
 ============================================ */
 
-const CACHE_NAME = "shopee-finder-v1";
+const CACHE_NAME = "shopee-finder-v2.0.1";
 
 /* Files ที่ต้องเก็บไว้ใช้งาน Offline */
 
@@ -104,11 +104,13 @@ self.addEventListener("fetch", event => {
 
             .then(cacheResponse => {
 
-                if (cacheResponse) {
-
-                    return cacheResponse;
-
-                }
+                if (event.request.mode === "navigate") {
+    event.respondWith(
+        fetch(event.request)
+            .catch(() => caches.match("./index.html"))
+    );
+    return;
+}
 
                 return fetch(event.request)
 
