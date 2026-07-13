@@ -472,6 +472,14 @@ if(UI.btnExport){
 
 }
 
+if(UI.btnFactoryReset){
+
+        UI.btnFactoryReset.addEventListener(
+            "click",
+            factoryReset
+        );
+}        
+
 if(UI.scrollContainer){
 
     UI.scrollContainer.addEventListener(

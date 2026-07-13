@@ -194,15 +194,6 @@ DB.isReady = function () {
    Save Products (Bulk Upsert)
 ===================================================== */
 
-DB.getAllProducts = function(){
-    return new Promise((resolve,reject)=>{
-        const tx=DB.db.transaction(DB.STORE,'readonly');
-        const req=tx.objectStore(DB.STORE).getAll();
-        req.onsuccess=()=>resolve(req.result);
-        req.onerror=()=>reject(req.error);
-    });
-};
-
 DB.saveProducts = function (products) {
 
     if(!Array.isArray(products)){
@@ -245,11 +236,29 @@ if(products.length===0){
 
         );
 
-        products.forEach(product => {
+        const seen = new Set();
 
-            store.put(product);
+products.forEach(product=>{
 
-        });
+    if(!product || !product.product_id){
+
+        return;
+
+    }
+
+    const id = String(product.product_id).trim();
+
+    if(seen.has(id)){
+
+        return;
+
+    }
+
+    seen.add(id);
+
+    store.put(product);
+
+});
 
         tx.oncomplete = function () {
 
@@ -327,46 +336,6 @@ DB.getAllProducts = function () {
                 request.error
 
             );
-
-        };
-
-    });
-
-};
-
-/* ==========================================================
-   Count Products
-========================================================== */
-
-DB.countProducts = function(){
-
-    return new Promise((resolve,reject)=>{
-
-        const tx = DB.db.transaction(
-
-            DB.STORE,
-
-            "readonly"
-
-        );
-
-        const store = tx.objectStore(
-
-            DB.STORE
-
-        );
-
-        const request = store.count();
-
-        request.onsuccess = function(){
-
-            resolve(request.result);
-
-        };
-
-        request.onerror = function(){
-
-            reject(request.error);
 
         };
 
@@ -498,11 +467,13 @@ DB.clearProducts = function () {
 
         const request = store.clear();
 
-        request.onsuccess = function () {
+        request.onsuccess=function(){
 
-            resolve(true);
+    DB.clearQueryCache();
 
-        };
+    resolve(true);
+
+};
 
         request.onerror = function () {
 
@@ -529,6 +500,8 @@ options = {
     limit: 100,
 
     offset: 0,
+    
+    sort:"commission_desc",
 
     ...options
 
@@ -740,17 +713,19 @@ if(
 
     }
     
+products = DB.sortProducts(
+    products,
+    options.sort
+);
+
 App.performance.queryTime =
-
-    performance.now()
-
-    - queryStart;
+    performance.now() - queryStart;
 
 App.performance.queryCount++;
 
-    resolve(products);
+resolve(products);
 
-    return;
+return;
 
 }
 
@@ -783,15 +758,17 @@ App.performance.queryCount++;
 
     }
     
-    App.performance.queryTime =
+    products = DB.sortProducts(
+    products,
+    options.sort
+);
 
-    performance.now()
-
-    - queryStart;
+App.performance.queryTime =
+    performance.now() - queryStart;
 
 App.performance.queryCount++;
 
-    resolve(products);
+resolve(products);
 
 }
 
@@ -1082,6 +1059,42 @@ DB.countQueryProducts = async function(options){
     return products.length;
 
 };
+
+/* =====================================================
+   Factory Reset
+===================================================== */
+
+DB.factoryReset = async function(){
+
+    await DB.clearProducts();
+
+    localStorage.clear();
+
+    DB.clearQueryCache();
+
+    console.log("Factory Reset Complete");
+
+};
+
+async function factoryReset(){
+
+    const ok = confirm(
+        "ลบข้อมูลสินค้าทั้งหมดและคืนค่าเริ่มต้น ?"
+    );
+
+    if(!ok){
+
+        return;
+
+    }
+
+    await DB.factoryReset();
+
+    alert("รีเซ็ตเรียบร้อย");
+
+    location.reload();
+
+}
 
 function showPerformance(){
 

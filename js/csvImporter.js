@@ -1,46 +1,25 @@
 /* ==========================================================
    Bow Product Finder
-   csvImporter.js v2.0
-   Production Build
+   csvImporter.js v3.0
 ========================================================== */
 
 "use strict";
 
-const DEBUG = false;
-
 const CSV = {
 
-    file: null,
+    file:null,
 
-    parser: null,
+    parser:null,
 
-    buffer: [],
+    buffer:[],
 
-    totalRows: 0,
+    batchSize:500,
 
-    importedRows: 0,
+    importedRows:0,
 
-    skippedRows: 0,
+    totalRows:0,
 
-    batchSize: 500,
-
-    isImporting: false,
-
-    resumeRow: 0,
-
-    resumeEnabled: true,
-    
-    currentFileIndex:0,
-
-totalFiles:0,
-
-completedFiles:[],
-
-failedFiles:[],
-
-queueRunning:false,
-
-    lastSaveTime: 0
+    isImporting:false
 
 };
 
@@ -48,15 +27,17 @@ queueRunning:false,
    Start Import
 ========================================================== */
 
-CSV.startImport = async function (file) {
+CSV.startImport = async function(file){
 
-    if (!file) {
+    if(!file){
 
-        throw new Error("No CSV file selected.");
+        alert("กรุณาเลือกไฟล์ CSV");
+
+        return;
 
     }
 
-    if (CSV.isImporting) {
+    if(CSV.isImporting){
 
         alert("กำลัง Import อยู่");
 
@@ -64,199 +45,71 @@ CSV.startImport = async function (file) {
 
     }
 
-    CSV.resetFileState();
-
-    CSV.file = file;
-    
-    const resume = CSV.loadResume();
-
-if(resume){
-
-    const ok = confirm(
-
-        `พบการนำเข้าที่ยังค้างอยู่\n\n`+
-
-        `นำเข้าแล้ว ${resume.importedRows.toLocaleString()} แถว\n\n`+
-
-        `ต้องการนำเข้าต่อหรือไม่?`
-
-    );
-
-    if(ok){
-
-        CSV.resumeRow =
-
-            resume.importedRows;
-            CSV.importedRows =
-
-    CSV.resumeRow;
-
-    }
-
-    else{
-
-        CSV.clearResume();
-
-        CSV.resumeRow = 0;
-        
-        CSV.lastSaveTime = 0;
-        
-        CSV.importedRows = 0;
-
-    }
-
-}
-
-    CSV.isImporting = true;
-
-    if (typeof showLoading === "function") {
-
-        showLoading("กำลังนำเข้าข้อมูล...");
-
-    }
-
-    if (typeof updateImportStatus === "function") {
-
-        updateImportStatus("กำลังอ่านไฟล์...");
-
-    }
-
-    if(DEBUG){
-
-    console.log("Import Started");
-
-    console.log(file.name);
-
-    console.log(file.size);
-
-}
-
-    await CSV.parse();
-
-};
-
-/* ==========================================================
-   Reset
-========================================================== */
-
-CSV.reset = function () {
-
-    CSV.file = null;
-
-    CSV.parser = null;
-
-    CSV.buffer = [];
-
-    CSV.totalRows = 0;
-
-    CSV.importedRows = 0;
-
-    CSV.skippedRows = 0;
-
-    CSV.isImporting = false;
-
-};
-
-CSV.resetFileState=function(){
-
-    CSV.file=null;
-
-    CSV.parser=null;
+    CSV.file=file;
 
     CSV.buffer=[];
 
-    CSV.totalRows=0;
-
     CSV.importedRows=0;
 
-    CSV.skippedRows=0;
+    CSV.totalRows=0;
 
-};
+    CSV.isImporting=true;
 
-/* ==========================================================
-   Cancel Import
-========================================================== */
+    showLoading("กำลัง Import...");
 
-CSV.cancel = function () {
-
-    if (CSV.parser) {
-
-        CSV.parser.abort();
-
-    }
-
-    CSV.isImporting = false;
-
-    CSV.buffer = [];
-
-    if(DEBUG){
-
-    console.log("Import Cancelled");
-
-}
+    return CSV.parse();
 
 };
 
 /* ==========================================================
    Parse CSV
-   (Phase 2.2)
 ========================================================== */
 
-/* ==========================================================
-   Parse CSV (Streaming)
-========================================================== */
+CSV.parse=function(){
 
-CSV.parse = async function () {
+    return new Promise((resolve,reject)=>{
 
-    return new Promise((resolve, reject) => {
+        Papa.parse(CSV.file,{
 
-        Papa.parse(CSV.file, {
+            header:true,
 
-    header: true,
+            skipEmptyLines:true,
 
-    worker: true,
+            worker:true,
 
-    skipEmptyLines: true,
+            dynamicTyping:false,
 
-    dynamicTyping: false,
+            step:async(result,parser)=>{
 
-    step: async function(result, parser){
-    
-    CSV.parser = parser;
+                CSV.parser=parser;
 
-    CSV.totalRows++;
+                CSV.totalRows++;
 
-    if(CSV.totalRows <= CSV.resumeRow){
+                const product=CSV.mapRow(result.data);
 
-        return;
+                if(product){
 
-    }
+                    CSV.buffer.push(product);
 
-    const product = CSV.mapRow(result.data);
+                }
 
-    if(product){
+                if(CSV.buffer.length>=CSV.batchSize){
 
-        CSV.buffer.push(product);
+                    parser.pause();
 
-    }
+                    await CSV.saveBuffer();
 
-    if(CSV.buffer.length >= CSV.batchSize){
+                    parser.resume();
 
-        parser.pause();
+                }
 
-        await CSV.saveBuffer();
+            },
 
-        parser.resume();
+            complete:async()=>{
 
-    }
+                try{
 
-},
-
-            complete: async function () {
-
-                try {
-
-                    if (CSV.buffer.length > 0) {
+                    if(CSV.buffer.length){
 
                         await CSV.saveBuffer();
 
@@ -264,21 +117,19 @@ CSV.parse = async function () {
 
                     await CSV.finish();
 
-                    resolve(true);
+                    resolve();
 
-                } catch (err) {
+                }
 
-                    reject(err);
+                catch(e){
+
+                    reject(e);
 
                 }
 
             },
 
-            error: function (err) {
-
-                reject(err);
-
-            }
+            error:reject
 
         });
 
@@ -290,44 +141,27 @@ CSV.parse = async function () {
    Save Buffer
 ========================================================== */
 
-CSV.saveBuffer = async function () {
+CSV.saveBuffer=async function(){
 
-    if (CSV.buffer.length === 0) {
+    if(!CSV.buffer.length){
 
         return;
 
     }
 
-    const batch = [...CSV.buffer];
+    const batch=[...CSV.buffer];
 
-    // ล้าง Buffer เพื่อรับข้อมูลชุดใหม่
-    CSV.buffer.length = 0;
+    CSV.buffer=[];
 
     await DB.saveProducts(batch);
 
-    CSV.importedRows += batch.length;
+    CSV.importedRows+=batch.length;
 
-    CSV.saveResume();
+    updateImportStatus(
 
-    CSV.updateProgress();
+        "Import "+CSV.importedRows.toLocaleString()+" รายการ"
 
-};
-
-/* ==========================================================
-   Update Progress
-========================================================== */
-
-CSV.updateProgress = function () {
-
-    if (typeof updateImportStatus === "function") {
-
-        updateImportStatus(
-
-            `Import ${CSV.importedRows.toLocaleString()} รายการ`
-
-        );
-
-    }
+    );
 
 };
 
@@ -335,340 +169,149 @@ CSV.updateProgress = function () {
    Map CSV Row
 ========================================================== */
 
-CSV.mapRow = function (row) {
+CSV.mapRow = function(row){
 
-    if (!row || !row["itemid"]) {
+    if(!row || !row["รหัสสินค้า"]){
         return null;
     }
 
-    const imageUrl = [
-        row["image_link"],
-        row["image_link_2"],
-        row["image_link_3"],
-        row["image_link_4"],
-        row["image_link_5"],
-        row["image_link_6"],
-        row["image_link_7"],
-        row["image_link_8"],
-        row["image_link_9"],
-        row["image_link_10"],
-        row["additional_image_link"]
-    ].find(url =>
-        url &&
-        String(url).trim() !== "" &&
-        String(url).trim().toLowerCase() !== "undefined"
-    );
+    return{
 
-    return {
+        product_id:String(row["รหัสสินค้า"]).trim(),
 
-        product_id: String(row["itemid"]).trim(),
+        name:String(row["ชื่อสินค้า"]||"").trim(),
 
-        name: String(row["title"] || "").trim(),
+        shop_name:String(row["ชื่อร้านค้า"]||"").trim(),
 
-        shop_name: String(row["shop_name"] || "").trim(),
+        price:CSV.parsePrice(row["ราคา"]),
 
-        price: CSV.parsePrice(row["price"]),
+        sold:CSV.parseSold(row["ขาย"]),
 
-        sold: CSV.parseSold(row["item_sold"]),
+        commission_rate:
+            parseFloat(
+                String(row["อัตราค่าคอมมิชชัน"]||0)
+                .replace("%","")
+            ) || 0,
 
-        commission_rate: 0,
+        commission_amount:
+            Number(
+                String(row["คอมมิชชัน"]||0)
+                .replace(/[^0-9.]/g,"")
+            ) || 0,
 
-        commission_amount: 0,
+        product_url:
+            String(row["ลิงก์สินค้า"]||"").trim(),
 
-        product_url: String(row["product_link"] || "").trim(),
+        offer_url:
+            String(row["ลิงก์ข้อเสนอ"]||"").trim(),
 
-        offer_url: String(row["product_short link"] || "").trim(),
-
-        image_url: imageUrl ? imageUrl.trim() : ""
+        image_url:
+            String(
+                row["รูปสินค้า"] ||
+                row["รูป"] ||
+                row["image"] ||
+                row["image_url"] ||
+                ""
+            ).trim()
 
     };
 
 };
 
-CSV.parsePrice = function(value){
+/* ==========================================================
+   Parse Price
+========================================================== */
 
-    if(!value) return 0;
+CSV.parsePrice=function(value){
 
-    value = String(value)
-        .replace(/,/g,"")
-        .replace(/฿/g,"")
-        .trim();
+    if(value===undefined || value===null){
 
-    if(value.includes("พัน")){
-
-        value = parseFloat(value)*1000;
+        return 0;
 
     }
-
-    return Number(value)||0;
-
-};
-
-CSV.parsePercent = function(value){
-
-    if(!value) return 0;
 
     return Number(
 
         String(value)
+        .replace(/,/g,"")
+        .replace(/฿/g,"")
+        .trim()
 
-        .replace("%","")
-
-    )||0;
-
-};
-
-CSV.parseMoney=function(value){
-
-    if(!value) return 0;
-
-    value=String(value)
-
-    .replace(/฿/g,"")
-
-    .replace(/,/g,"")
-
-    .trim();
-
-    return Number(value)||0;
+    ) || 0;
 
 };
+
+/* ==========================================================
+   Parse Sold
+========================================================== */
 
 CSV.parseSold=function(value){
 
-    if(!value) return 0;
+    if(value===undefined || value===null){
 
-    value=String(value).trim();
-
-    if(value.includes("พัน")){
-
-        return parseFloat(value)*1000;
+        return 0;
 
     }
 
-    if(value.includes("หมื่น")){
+    return Number(
 
-        return parseFloat(value)*10000;
+        String(value)
+        .replace(/,/g,"")
+        .replace("+","")
+        .trim()
 
-    }
-
-    if(value.includes("แสน")){
-
-        return parseFloat(value)*100000;
-
-    }
-
-    value=value.replace("+","");
-
-    return Number(value)||0;
+    ) || 0;
 
 };
 
 /* ==========================================================
-   Finish Import
+   Finish
 ========================================================== */
 
-CSV.finish = async function () {
+CSV.finish = async function(){
 
-    CSV.clearResume();
-    
+    CSV.isImporting=false;
+
     DB.clearQueryCache();
-    
-    CSV.isImporting = false;
 
     App.totalProducts =
+        await DB.countProducts();
 
-    await DB.countProducts();
+    App.totalResults =
+        App.totalProducts;
 
-App.totalResults =
+    App.queryOffset = 0;
 
-    App.totalProducts;
+    App.hasMore = true;
 
-App.queryOffset = 0;
+    await applyFilters();
 
-App.hasMore = true;
+    hideLoading();
 
-await applyFilters();
+    updateImportStatus(
 
-    // ซ่อน Loading
-    if (typeof hideLoading === "function") {
-
-        hideLoading();
-
-    }
-
-    // แสดงสถานะ
-    if (typeof updateImportStatus === "function") {
-
-        updateImportStatus(
-
-            `Import สำเร็จ ${CSV.importedRows.toLocaleString()} รายการ`
-
-        );
-
-    }
-
-    if(DEBUG){
-
-    console.log(
-
-        "Import Finished",
-
-        CSV.importedRows
-
-    );
-
-}
-
-};
-
-/* ==========================================================
-   Save Resume
-========================================================== */
-
-CSV.saveResume = function(){
-
-    if(!CSV.resumeEnabled){
-
-        return;
-
-    }
-
-    localStorage.setItem(
-
-        "csv_resume",
-
-        JSON.stringify({
-
-            importedRows:
-
-                CSV.importedRows,
-
-            totalRows:
-
-                CSV.totalRows,
-
-            time:
-
-                Date.now()
-
-        })
+        "Import สำเร็จ " +
+        CSV.importedRows.toLocaleString() +
+        " รายการ"
 
     );
 
 };
 
 /* ==========================================================
-   Load Resume
+   Cancel
 ========================================================== */
 
-CSV.loadResume = function(){
+CSV.cancel=function(){
 
-    const text = localStorage.getItem(
+    if(CSV.parser){
 
-        "csv_resume"
-
-    );
-
-    if(!text){
-
-        return null;
+        CSV.parser.abort();
 
     }
 
-    return JSON.parse(text);
+    CSV.isImporting=false;
 
-};
-
-/* ==========================================================
-   Clear Resume
-========================================================== */
-
-CSV.clearResume = function(){
-
-    localStorage.removeItem(
-
-        "csv_resume"
-
-    );
-
-};
-
-
-CSV.startCommissionImport = async function(file){
-
-    const text = await file.text();
-
-    const rows = Papa.parse(text,{header:true, skipEmptyLines:true}).data;
-
-    const db = await DB.getAllProducts();
-    const map = new Map(db.map(p=>[String(p.product_id),p]));
-
-    let updated=[];
-
-    rows.forEach(r=>{
-        const id = String(r.itemid || r["itemid"] || "").trim();
-        const product = map.get(id);
-
-        if(product){
-            product.commission_rate = parseFloat(String(r.commission_rate || r["commission"] || r["ค่าคอมมิชชัน"] || 0).replace('%','')) || 0;
-            product.commission_amount = Number(String(r.commission_amount || r["commission_amount"] || r["ค่าคอม"] || 0).replace(/[^0-9.]/g,'')) || 0;
-            product.offer_url = String(r["product_short link"] || r.offer_url || r["ลิงก์ข้อเสนอ"] || product.offer_url || '').trim();
-            updated.push(product);
-        }
-    });
-
-    await DB.saveProducts(updated);
-
-    alert('อัปเดตค่าคอมแล้ว '+updated.length+' รายการ');
-
-};   // <-- จบฟังก์ชันตรงนี้
-
-CSV.startImportFiles = async function(files){
-
-    CSV.totalFiles = files.length;
-
-    CSV.completedFiles = [];
-
-    CSV.failedFiles = [];
-
-    CSV.queueRunning = true;
-
-    for(let i=0;i<files.length;i++){
-
-        CSV.currentFileIndex = i;
-
-        if(typeof UI!=="undefined"){
-
-            UI.importStatus.textContent =
-                `กำลัง Import ${i+1}/${files.length}\n${files[i].name}`;
-
-        }
-
-        try{
-
-            await CSV.startImport(files[i]);
-
-            CSV.completedFiles.push(files[i].name);
-
-        }
-        catch(error){
-
-            console.error(error);
-
-            CSV.failedFiles.push({
-                file: files[i].name,
-                error: error.message
-            });
-
-        }
-
-    }
-
-    CSV.queueRunning = false;
-
-    alert(
-        `Import Complete\n\nSuccess : ${CSV.completedFiles.length}\nFailed : ${CSV.failedFiles.length}`
-    );
+    CSV.buffer=[];
 
 };
