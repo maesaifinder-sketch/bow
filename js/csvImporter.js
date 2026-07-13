@@ -23,6 +23,11 @@ const CSV = {
 
 };
 
+
+CSV.startCommissionImport=async function(file){
+ return CSV.startImport(file);
+};
+
 /* ==========================================================
    Start Import
 ========================================================== */
@@ -171,21 +176,22 @@ CSV.saveBuffer=async function(){
 
 CSV.mapRow = function(row){
 
-    if(!row || !row["รหัสสินค้า"]){
+    const id=row["รหัสสินค้า"]||row["itemid"];
+    if(!row||!id){
         return null;
     }
 
     return{
 
-        product_id:String(row["รหัสสินค้า"]).trim(),
+        product_id:String(id).trim(),
 
-        name:String(row["ชื่อสินค้า"]||"").trim(),
+        name:String(row["ชื่อสินค้า"]||row["title"]||"").trim(),
 
-        shop_name:String(row["ชื่อร้านค้า"]||"").trim(),
+        shop_name:String(row["ชื่อร้านค้า"]||row["shop_name"]||"").trim(),
 
-        price:CSV.parsePrice(row["ราคา"]),
+        price:CSV.parsePrice(row["ราคา"]||row["price"]),
 
-        sold:CSV.parseSold(row["ขาย"]),
+        sold:CSV.parseSold(row["ขาย"]||row["historical_sold"]),
 
         commission_rate:
             parseFloat(
@@ -199,8 +205,7 @@ CSV.mapRow = function(row){
                 .replace(/[^0-9.]/g,"")
             ) || 0,
 
-        product_url:
-            String(row["ลิงก์สินค้า"]||"").trim(),
+        product_url:String(row["ลิงก์สินค้า"]||row["product_link"]||"").trim(),
 
         offer_url:
             String(row["ลิงก์ข้อเสนอ"]||"").trim(),
@@ -210,7 +215,7 @@ CSV.mapRow = function(row){
                 row["รูปสินค้า"] ||
                 row["รูป"] ||
                 row["image"] ||
-                row["image_url"] ||
+                row["image_url"] || row["image_link"] ||
                 ""
             ).trim()
 
