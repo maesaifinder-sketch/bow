@@ -23,14 +23,42 @@ const CSV = {
 
 };
 
-
-CSV.startCommissionImport=async function(file){
- return CSV.startImport(file);
-};
-
 /* ==========================================================
    Start Import
 ========================================================== */
+
+CSV.startCommissionImport = async function(file){
+
+    const rows = await CSV.readCSV(file);
+
+    rows.forEach(row=>{
+
+        const id =
+            row["รหัสสินค้า"] ||
+            row["สินค้า ID"] ||
+            row["itemid"];
+
+        if(!id) return;
+
+        const item = DB.products[id];
+
+        if(!item) return;
+
+        item.commission =
+            row["ค่าคอมมิชชั่น"] ||
+            row["Commission"] ||
+            row["อัตราค่าคอมมิชชัน"] ||
+            "";
+
+        item.platformCommission =
+            row["Platform"] ||
+            "";
+
+    });
+
+    renderProducts();
+
+}
 
 CSV.startImport = async function(file){
 
@@ -176,50 +204,84 @@ CSV.saveBuffer=async function(){
 
 CSV.mapRow = function(row){
 
-    const id=row["รหัสสินค้า"]||row["itemid"];
-    if(!row||!id){
+    if(!row || !row["รหัสสินค้า"]){
         return null;
     }
 
     return{
 
-        product_id:String(id).trim(),
+    product_id:String(
+        row["รหัสสินค้า"] ||
+        row["สินค้า ID"] ||
+        row["itemid"] ||
+        ""
+    ).trim(),
 
-        name:String(row["ชื่อสินค้า"]||row["title"]||"").trim(),
+    name:String(
+        row["ชื่อสินค้า"] ||
+        row["title"] ||
+        row["name"] ||
+        ""
+    ).trim(),
 
-        shop_name:String(row["ชื่อร้านค้า"]||row["shop_name"]||"").trim(),
+    shop_name:String(
+        row["ชื่อร้านค้า"] ||
+        row["shop_name"] ||
+        ""
+    ).trim(),
 
-        price:CSV.parsePrice(row["ราคา"]||row["price"]),
+    price:CSV.parsePrice(
+        row["ราคา"] ||
+        row["price"] ||
+        0
+    ),
 
-        sold:CSV.parseSold(row["ขาย"]||row["historical_sold"]),
+    sold:CSV.parseSold(
+        row["ขาย"] ||
+        row["historical_sold"] ||
+        row["sold"] ||
+        0
+    ),
 
-        commission_rate:
-            parseFloat(
-                String(row["อัตราค่าคอมมิชชัน"]||0)
-                .replace("%","")
-            ) || 0,
-
-        commission_amount:
-            Number(
-                String(row["คอมมิชชัน"]||0)
-                .replace(/[^0-9.]/g,"")
-            ) || 0,
-
-        product_url:String(row["ลิงก์สินค้า"]||row["product_link"]||"").trim(),
-
-        offer_url:
-            String(row["ลิงก์ข้อเสนอ"]||"").trim(),
-
-        image_url:
+    commission_rate:
+        parseFloat(
             String(
-                row["รูปสินค้า"] ||
-                row["รูป"] ||
-                row["image"] ||
-                row["image_url"] || row["image_link"] ||
-                ""
-            ).trim()
+                row["อัตราค่าคอมมิชชัน"] ||
+                row["commission_rate"] ||
+                0
+            ).replace("%","")
+        ) || 0,
 
-    };
+    commission_amount:
+        Number(
+            String(
+                row["คอมมิชชัน"] ||
+                row["commission_amount"] ||
+                0
+            ).replace(/[^0-9.]/g,"")
+        ) || 0,
+
+    product_url:String(
+        row["ลิงก์สินค้า"] ||
+        row["product_link"] ||
+        row["product_url"] ||
+        ""
+    ).trim(),
+
+    offer_url:String(
+        row["ลิงก์ข้อเสนอ"] ||
+        row["offer_url"] ||
+        ""
+    ).trim(),
+
+    image_url:String(
+        row["รูปสินค้า"] ||
+        row["รูป"] ||
+        row["image"] ||
+        row["image_url"] ||
+        row["image_link"] ||
+        ""
+    ).trim()
 
 };
 
