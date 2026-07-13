@@ -338,14 +338,6 @@ CSV.updateProgress = function () {
 CSV.mapRow = function (row) {
 
     if (!row || !row["itemid"]) {
-
-        return null;
-
-    }
-
-    CSV.mapRow = function (row) {
-
-    if (!row || !row["itemid"]) {
         return null;
     }
 
@@ -388,10 +380,6 @@ CSV.mapRow = function (row) {
         offer_url: String(row["product_short link"] || "").trim(),
 
         image_url: imageUrl ? imageUrl.trim() : ""
-
-    };
-
-};
 
     };
 
@@ -631,9 +619,12 @@ CSV.startCommissionImport = async function(file){
     });
 
     await DB.saveProducts(updated);
+
     alert('อัปเดตค่าคอมแล้ว '+updated.length+' รายการ');
-    
-    CSV.startImportFiles = async function(files){
+
+};   // <-- จบฟังก์ชันตรงนี้
+
+CSV.startImportFiles = async function(files){
 
     CSV.totalFiles = files.length;
 
@@ -649,11 +640,8 @@ CSV.startCommissionImport = async function(file){
 
         if(typeof UI!=="undefined"){
 
-            UI.importStatus.textContent=
-
-                `กำลัง Import ${i+1}/${files.length}
-
-${files[i].name}`;
+            UI.importStatus.textContent =
+                `กำลัง Import ${i+1}/${files.length}\n${files[i].name}`;
 
         }
 
@@ -661,42 +649,26 @@ ${files[i].name}`;
 
             await CSV.startImport(files[i]);
 
-            CSV.completedFiles.push(
-
-                files[i].name
-
-            );
+            CSV.completedFiles.push(files[i].name);
 
         }
-
         catch(error){
 
             console.error(error);
 
             CSV.failedFiles.push({
-
-                file:files[i].name,
-
-                error:error.message
-
+                file: files[i].name,
+                error: error.message
             });
 
         }
 
     }
 
-    CSV.queueRunning=false;
+    CSV.queueRunning = false;
 
     alert(
-
-        `Import Complete
-
-Success : ${CSV.completedFiles.length}
-
-Failed : ${CSV.failedFiles.length}`
-
+        `Import Complete\n\nSuccess : ${CSV.completedFiles.length}\nFailed : ${CSV.failedFiles.length}`
     );
-
-};
 
 };

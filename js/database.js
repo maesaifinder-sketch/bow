@@ -252,18 +252,17 @@ if(products.length===0){
         });
 
         tx.oncomplete = function () {
-        
-        console.log(
 
-    "Batch Saved:",
+    DB.clearQueryCache();
 
-    products.length
+    console.log(
+        "Batch Saved:",
+        products.length
+    );
 
-);
+    resolve(true);
 
-            resolve(true);
-
-        };
+};
 
         tx.onerror = function (event) {
 

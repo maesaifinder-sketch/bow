@@ -28,7 +28,7 @@ lastRenderTime: 0,
 
 maxRenderBatch: 100,
 
-minRenderBatch: 20,
+minRenderBatch: 100,
 
 queryOffset: 0,
 
@@ -48,7 +48,7 @@ performance:{
 
 },
 
-renderBatch: 20,
+renderBatch: 100,
 
 queryWorker: null,
 
@@ -72,9 +72,9 @@ hasMore: true,
 
     sortMode: "commission_desc",
 
-    visibleCount: 50,
+    visibleCount: 100,
 
-loadSize: 50,
+loadSize: 100,
 
 renderedCount: 0,
 
@@ -159,6 +159,9 @@ const UI = {
     productGrid:
 
     document.getElementById("productGrid"),
+    
+    productBody:
+document.getElementById("productBody"),
 
 scrollContainer:
 
@@ -187,15 +190,15 @@ function checkUI(){
 
     const required=[
 
-    "csvFiles",
+        "csvFiles",
 
-    "btnImport",
+        "btnImport",
 
-    "searchInput",
+        "searchInput",
 
-    "productGrid"
+        "productBody"
 
-];
+    ];
 
     required.forEach(id=>{
 
@@ -708,14 +711,12 @@ function renderProducts(){
 
     if(App.filtered.length===0){
 
-        UI.productGrid.innerHTML=`
-
-            <div class="empty">
-
-                ไม่พบสินค้า
-
-            </div>
-
+        UI.productBody.innerHTML=`
+            <tr>
+                <td colspan="7" style="text-align:center">
+                    ไม่พบสินค้า
+                </td>
+            </tr>
         `;
 
         App.renderedCount=0;
@@ -726,7 +727,7 @@ function renderProducts(){
 
     if(App.renderedCount===0){
 
-        UI.productGrid.innerHTML="";
+        UI.productBody.innerHTML="";
 
     }
 
@@ -754,7 +755,7 @@ function renderProducts(){
 
         fragment.appendChild(
 
-            createProductCard(
+            createProductRow(
 
                 App.filtered[i]
 
@@ -764,7 +765,7 @@ function renderProducts(){
 
     }
 
-    UI.productGrid.appendChild(fragment);
+    UI.productBody.appendChild(fragment);
     
     App.lastRenderTime =
 
@@ -852,86 +853,42 @@ function runWhenIdle(task){
    Product Card
 ========================================================== */
 
-function createProductCard(product){
+function createProductRow(product){
 
-    const card=document.createElement("div");
+    const tr = document.createElement("tr");
 
-    card.className="product";
+    tr.innerHTML = `
+        <td>
+            ${
+                product.image_url
+                ? `<img src="${product.image_url}" width="60" loading="lazy">`
+                : ""
+            }
+        </td>
 
-    card.innerHTML=`
+        <td>${product.name}</td>
 
-        ${
-    product.image_url
-        ? `<img loading="lazy" src="${product.image_url}" alt="">`
-        : ""
-}
+        <td>${product.shop_name}</td>
 
-        <div class="product-body">
+        <td>฿${product.price.toLocaleString()}</td>
 
-            <div class="title">
+        <td>${product.sold.toLocaleString()}</td>
 
-                ${product.name}
+        <td>
+            ${product.commission_rate}%<br>
+            ฿${product.commission_amount.toLocaleString()}
+        </td>
 
-            </div>
-
-            <div>
-
-                ร้าน :
-
-                ${product.shop_name}
-
-            </div>
-
-            <div>
-
-                ราคา :
-
-                ฿${product.price.toLocaleString()}
-
-            </div>
-
-            <div>
-
-                ขาย :
-
-                ${product.sold.toLocaleString()}
-
-            </div>
-
-            <div>
-
-                คอม :
-
-                ${product.commission_rate}%
-
-            </div>
-
-            <div>
-
-                ฿${product.commission_amount.toLocaleString()}
-
-            </div>
-
-            <button
-
-                onclick="openProduct(
-
-                '${product.offer_url}'
-
-                )">
-
-                เปิดสินค้า
-
+        <td>
+            <button onclick="openProduct('${product.offer_url}')">
+                เปิด
             </button>
-
-        </div>
-
+        </td>
     `;
 
-    return card;
+    return tr;
 
 }
-
 /* ==========================================================
    Reset Database
 ========================================================== */
@@ -952,25 +909,25 @@ async function resetDatabase(){
 
     try{
 
-        showLoading("กำลังลบข้อมูล...");
+    showLoading("กำลังลบข้อมูล...");
 
-        await DB.clearProducts();
-        
-        DB.clearQueryCache();
+    await DB.clearProducts();
 
-        App.filtered=[];
+    localStorage.removeItem("csv_resume");   // ลบข้อมูลที่เก็บไว้ในเครื่อง
 
-        updateSummary();
+    DB.clearQueryCache();
 
-        renderProducts();
+    App.filtered = [];
 
-        hideLoading();
+    updateSummary();
 
-        UI.importStatus.textContent=
+    renderProducts();
 
-            "ลบข้อมูลทั้งหมดแล้ว";
+    hideLoading();
 
-    }
+    UI.importStatus.textContent = "ลบข้อมูลทั้งหมดแล้ว";
+
+}
 
     catch(error){
 
@@ -1409,7 +1366,7 @@ async function prefetchNextPage(){
 
 function cleanupOldCards(){
 
-    const cards = UI.productGrid.children;
+    const cards = UI.productBody.children;
 
     if(cards.length <= App.maxRendered){
 
@@ -1427,9 +1384,8 @@ function cleanupOldCards(){
 
     for(let i = 0; i < removeCount; i++){
 
-        UI.productGrid.removeChild(
-
-            UI.productGrid.firstElementChild
+        UI.productBody.removeChild(
+        UI.productBody.firstElementChild
 
         );
 
